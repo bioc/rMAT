@@ -1,0 +1,14 @@
+Package: rMAT
+Type: Package
+Title: rMAT is a package for parsing Affymetrix BPMAP and CEL file, normalizing tiling arrays and analyzing ChIP-chip data.  Model-based analysis of tiling-arrays for ChIP-chip. PNAS 103:12457-12462.
+Version: 0.3.0
+Author: Charles Cheung and Arnaud Droit and Raphael Gottardo 
+Maintainer: Arnaud Droit <arnaud.droit@ircm.qc.ca> and Raphael Gottardo <raphael.gottardo@ircm.qc.ca>
+Description: This package contains functions to parse and merge Affymetrix BPMAP and CEL tiling array files (using C++ based Fusion SDK and Bioconductor package affxparser), normalize tiling arrays using sequence specific models, detect enriched regions from ChIP-chip experiments. Note: users should have GSL anf GenomeGraphs installed. Windows users: 'consult the README file available in the inst directory of the source distribution for necessary configuration instructions'.
+Note: test.
+Year:2009.
+License: Artistic-2.0
+Imports: Biobase,affxparser,methods
+Suggests: GenomeGraphs
+biocViews: Microarray, Preprocessing, Statistics
+URL: http://www.rglab.org

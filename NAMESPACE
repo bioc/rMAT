@@ -1,0 +1,18 @@
+##
+## NAMESPACE file for MAT library.
+##
+useDynLib(rMAT)
+
+## export anything w/out a dot in front. 
+exportPattern("^[^\\.]")
+exportClasses(tilingSet, MAT)
+exportMethods(show,summary)
+
+
+importClassesFrom(Biobase,eSet,VersionedBiobase,Versioned, AnnotatedDataFrame,AssayData,ExpressionSet, MIAME, Versions)
+importClassesFrom(methods, character, integer, numeric)
+importMethodsFrom(Biobase, combine, exprs, "exprs<-", preproc,"preproc<-", sampleNames)
+importMethodsFrom(methods, show)
+importFrom(affxparser, readCel)
+importFrom(methods, "@<-", new)
+importFrom(stats, rnorm)

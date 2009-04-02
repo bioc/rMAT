@@ -1,0 +1,9 @@
+grid.rect(gp=gpar(lty="dashed"))
+vp1<-viewport(x=0,y=0.5,w=0.5,h=0.5,just=c("left","bottom"),name="vp1")
+vp2<-viewport(x=0.5,y=0,w=0.5,h=0.5,just=c("left","bottom"))
+pushViewport(vp1)
+#grid.rec(
+grid.text("text",y=0.8)
+upViewport()
+pushViewport(vp2)
+grid.text("Region2",y=0.8)
