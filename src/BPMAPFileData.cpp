@@ -26,6 +26,7 @@
 #include <fstream>
 #include <math.h>
 #include <stdio.h>
+#include <cstdlib>#include <list>#include <vector>
 
 #ifndef WIN32
 #include <sys/mman.h>
