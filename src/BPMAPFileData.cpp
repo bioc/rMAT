@@ -28,9 +28,9 @@
 #include <stdio.h>
 #include <cstdlib>#include <list>#include <vector>
 
-/*#ifndef WIN32
+#ifndef WIN32
 #include <sys/mman.h>
-#endif*/
+#endif
 
 #ifdef _INCLUDE_UNISTD_HEADER_
 #include <unistd.h>
