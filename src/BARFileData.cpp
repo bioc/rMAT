@@ -24,8 +24,11 @@
 #include <istream>
 #include <fstream>
 #include <assert.h>
+#include <cstdlib>
+#include <list>
+#include <vector>
 
-#ifndef _MSC_VER
+#ifndef WIN32
 #include <sys/mman.h>
 #endif
 
@@ -528,7 +531,7 @@ bool CBARFileData::ReadDataSection()
 
 void CBARFileData::Close()
 {
-	m_Version=0;
+	/*m_Version=0;
 	m_NumberSequences=0;
 	m_NumberColumns=0;
 	m_NumberParameters=0;
@@ -537,7 +540,7 @@ void CBARFileData::Close()
 	m_ColumnTypes.erase(m_ColumnTypes.begin(), m_ColumnTypes.end());
 	m_Results.erase(m_Results.begin(), m_Results.end());
 
-#ifdef _MSC_VER
+#ifdef WIN32
 	if (m_bFileOpen)
 	{
 		if (m_bFileMapped)
@@ -564,7 +567,7 @@ void CBARFileData::Close()
 			fclose(m_fp);
 		m_fp = NULL;
 	}
-#endif
+#endif*/
 }
 
 //////////////////////////////////////////////////////////////////////

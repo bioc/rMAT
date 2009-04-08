@@ -21,12 +21,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <cstdlib>
+#include <list>
+#include <vector>
+
 
 #include "FileWriter.h"
 
 //////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
+#ifdef WIN32
 #include <winsock2.h>
 #else
 #include <inttypes.h>
