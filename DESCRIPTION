@@ -1,6 +1,6 @@
 Package: rMAT
 Type: Package
-Title: rMAT is a package for parsing Affymetrix BPMAP and CEL file, normalizing tiling arrays and analyzing ChIP-chip data.  Model-based analysis of tiling-arrays for ChIP-chip. PNAS 103:12457-12462.
+Title: R implementation from MAT program to normalize and analyze tiling arrays and ChIP-chip data.  
 Version: 0.99.0
 Author: Charles Cheung and Arnaud Droit and Raphael Gottardo 
 Maintainer: Arnaud Droit <arnaud.droit@ircm.qc.ca> and Raphael Gottardo <raphael.gottardo@ircm.qc.ca>
