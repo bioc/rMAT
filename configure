@@ -1672,6 +1672,10 @@ fi
 #   BLAS_LIBS="-lgslcblas"
 # fi
 
+PKG_CHECK_MODULES(GSL, gsl >= 1.6, HAVEGSL="yes", HAVEGSL="no")
+if test "$HAVEGSL" = "yes"; then
+  LIBS=$GSL_LIBS
+else
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -2898,7 +2902,7 @@ echo "$as_me: error: Cannot find Gnu Scientific Library >=1.6" >&2;}
 
   rm -f conf.gsltest
 
-
+fi
 
 ac_config_files="$ac_config_files src/Makevars"
 
