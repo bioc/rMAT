@@ -707,14 +707,14 @@ void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *
     printf("** Estimate Null distribution **\n");
   }
   /** Estimate the Null distributions **/
-  // MATNullDistribution(position, *nProbes, *dMax, MATScores, &sigma0, &mu0, seqNum, totalSeqsPosition);
+  MATNullDistribution(position, *nProbes, *dMax, MATScores, &sigma0, &mu0, seqNum, totalSeqsPosition);
 
   if(*verbose)
   {
     printf("** Calculate P-values **\n");  
   }
   /** Compute the associated pValues **/
-  // MATpValue(*nProbes, MATScores, sigma0, mu0, pValues);
+  MATpValue(*nProbes, MATScores, sigma0, mu0, pValues);
   
   /** Compute the FDR cutoff **/
   if(*method==1) /** Based on MAT scores **/
