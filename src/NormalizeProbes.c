@@ -701,20 +701,20 @@ void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *
   // }
   /** Compute the MAT Scores **/
   MATScore(C, I, *nProbes, *nArraysC, *nArraysI, position, *dMax, *nProbesMin, MATScores, seqNum, &totalSeqsPosition);
-
+  
   if(*verbose)
   {
     printf("** Estimate Null distribution **\n");
   }
   /** Estimate the Null distributions **/
-  MATNullDistribution(position, *nProbes, *dMax, MATScores, &sigma0, &mu0, seqNum, totalSeqsPosition);
+  // MATNullDistribution(position, *nProbes, *dMax, MATScores, &sigma0, &mu0, seqNum, totalSeqsPosition);
 
   if(*verbose)
   {
     printf("** Calculate P-values **\n");  
   }
   /** Compute the associated pValues **/
-  MATpValue(*nProbes, MATScores, sigma0, mu0, pValues);
+  // MATpValue(*nProbes, MATScores, sigma0, mu0, pValues);
   
   /** Compute the FDR cutoff **/
   if(*method==1) /** Based on MAT scores **/
@@ -777,19 +777,19 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
     {
       error("Check that your intensities are ordered by chromosome then by position \n");
     }
-
     /* It was sorted.. so no need abs(); pMin keeps moving WRT to i */
     while((pMin < i) &&  ((position[i] - position[pMin])>dMax/2.) && (seqNum[pMin]==seqNum[i]))
     {
       pMin++;
     }
-
     /* should be position[pMin+1] so it is always within */
     while((pMax<nProbes) && ((position[pMax+1]-position[i])<=dMax/2.) && (seqNum[pMax+1]==seqNum[i]) && (pMax+1 < nProbes))
     {
       pMax++;
     }
-
+    /* If there is only one probe we skip it */
+    if(pMax-pMin>0)
+    {
     // /** Check whether there are enough probes in the region **/      
     // if((pMax-pMin)>nProbesMin)
     // {
@@ -862,7 +862,7 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
           }
         }
       }
-      
+
       /** Computing the MAT Score **/
       if(nProbesNotTrimmed>0)
       {
@@ -874,11 +874,11 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
       {
         MATScores[i]=0.0;
       }
-    // }
-    // else
-    // {
-    //   MATScores[i]=0.0;       
-    // }
+    }
+    else
+    {
+      MATScores[i]=0.0;       
+    }
   }  
 }
 
