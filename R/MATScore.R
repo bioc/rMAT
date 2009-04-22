@@ -144,8 +144,8 @@ MATScore<-function(tilingSet, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, me
     score<-max(MATScore[ind])
     return(list(chr=chr,start=min(pos),end=max(pos),score=score))
   }
-  # else
-  # {
-  #   return(NA)
-  # }
+  else
+  {
+    return(NULL)
+  }
 }
