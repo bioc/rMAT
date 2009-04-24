@@ -21,9 +21,9 @@ MATScore<-function(tilingSet, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, me
   
   if(!is.null(cName))
   {
-    sampleNames<-sampleNames(tilingSet@phenoData)        
-    C<-as.matrix(y[,grep(cName,sampleNames)])
-    I<-as.matrix(y[,-grep(cName,sampleNames)])
+    sNames<-sampleNames(tilingSet)        
+    C<-as.matrix(y[,grep(cName,sNames)])
+    I<-as.matrix(y[,-grep(cName,sNames)])
     nArraysC<-ncol(C)
   }
   else

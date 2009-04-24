@@ -21,7 +21,6 @@
     tmp<-strsplit(CelFileNames[i], "/")
     tmp<-strsplit((tmp[[1]])[length(tmp[[1]])], ".[cC][eE][lL]")
     phenoData[i]<-(tmp[[1]])[1]
-
     if(i==1)
     {
       tmp<-readCel(CelFileNames[1], readXY=TRUE, readIntensities=TRUE, readOutliers=TRUE)
@@ -39,7 +38,6 @@
     }
     names(tmpCel)[i+2]<-paste("I", i, sep="")
   }
-
   names(SeqChr)[1]<-"X"
   names(SeqChr)[2]<-"Y"
 
@@ -75,6 +73,7 @@
   Data<-as.data.frame(Data)
 
   names(Data)<-phenoData
+
   if(is.null(genomeName))
   {
     tmp<-strsplit(BPMAPFileName, "/")
