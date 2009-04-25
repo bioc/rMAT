@@ -21,7 +21,15 @@ MATScore<-function(tilingSet, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, me
   
   if(!is.null(cName))
   {
-    sNames<-sampleNames(tilingSet)        
+    sNames<-sampleNames(tilingSet)       
+    if(length(grep(cName,sNames))==0)
+    {
+      stop("The variable 'cName' must be a subset of the control sample name")
+    }
+    if(verbose)
+    {
+      cat("You are using: ",sName[grep(cName,sNames)], " as the control\n" )
+    }
     C<-as.matrix(y[,grep(cName,sNames)])
     I<-as.matrix(y[,-grep(cName,sNames)])
     nArraysC<-ncol(C)
