@@ -21,9 +21,17 @@ MATScore<-function(tilingSet, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, me
   
   if(!is.null(cName))
   {
-    sampleNames<-sampleNames(tilingSet@phenoData)        
-    C<-as.matrix(y[,grep(cName,sampleNames)])
-    I<-as.matrix(y[,-grep(cName,sampleNames)])
+    sNames<-sampleNames(tilingSet)       
+    if(length(grep(cName,sNames))==0)
+    {
+      stop("The variable 'cName' must be a subset of the control sample name")
+    }
+    if(verbose)
+    {
+      cat("You are using: ",sNames[grep(cName,sNames)], " as the control\n" )
+    }
+    C<-as.matrix(y[,grep(cName,sNames)])
+    I<-as.matrix(y[,-grep(cName,sNames)])   
     nArraysC<-ncol(C)
   }
   else
@@ -144,8 +152,8 @@ MATScore<-function(tilingSet, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, me
     score<-max(MATScore[ind])
     return(list(chr=chr,start=min(pos),end=max(pos),score=score))
   }
-  # else
-  # {
-  #   return(NA)
-  # }
+  else
+  {
+    return(NULL)
+  }
 }
