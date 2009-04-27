@@ -28,7 +28,7 @@ MATScore<-function(tilingSet, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, me
     }
     if(verbose)
     {
-      cat("You are using: ",sName[grep(cName,sNames)], " as the control\n" )
+      cat("You are using: ",sNames[grep(cName,sNames)], " as the control\n" )
     }
     C<-as.matrix(y[,grep(cName,sNames)])
     I<-as.matrix(y[,-grep(cName,sNames)])
