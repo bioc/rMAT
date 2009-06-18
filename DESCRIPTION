@@ -1,14 +1,14 @@
 Package: rMAT
 Type: Package
 Title: R implementation from MAT program to normalize and analyze tiling arrays and ChIP-chip data.  
-Version: 1.1.2
+Version: 1.1.3
 Author: Charles Cheung and Arnaud Droit and Raphael Gottardo 
 Maintainer: Arnaud Droit <arnaud.droit@ircm.qc.ca> and Raphael Gottardo <raphael.gottardo@ircm.qc.ca>
 Description: This package is an R version of the package MAT and contains functions to parse and merge Affymetrix BPMAP and CEL tiling array files (using C++ based Fusion SDK and Bioconductor package affxparser), normalize tiling arrays using sequence specific models, detect enriched regions from ChIP-chip experiments. Note: users should have GSL anf GenomeGraphs installed. Windows users: 'consult the README file available in the inst directory of the source distribution for necessary configuration instructions'.
 Note: test.
 Year:2009.
 License: Artistic-2.0
-Imports: Biobase,affxparser,methods
+Imports: Biobase (>= 2.5.3), affxparser, methods
 Suggests: GenomeGraphs
 biocViews: Microarray, Preprocessing, Statistics
 URL: http://www.rglab.org
