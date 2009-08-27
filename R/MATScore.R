@@ -122,7 +122,6 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
   package="rMAT")
 
   pValue<-obj$pValue
-  print(obj$regions)
 
 
   if(verbose)
@@ -130,7 +129,6 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     cat("** Number of Enriched regions is ", obj$numRegions, " **\n")
   }
   numRegions<-obj$numRegions
-  print(numRegions)
   if(numRegions > 0)
   {
     # We have detected some regions
@@ -143,8 +141,6 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     package="rMAT")
     
     score<-start<-end<-chr<-rep(0,numRegions)
-    print(obj$Start)
-    print(obj$End)
     
     for(i in 1:numRegions)
     {
