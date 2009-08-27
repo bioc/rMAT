@@ -1,7 +1,7 @@
 # library(Biobase)
 library(rMAT)
-pwd<-"/rMAT/inst/doc/"
 
+pwd<-"/rMAT/inst/doc/"
 
 ####################################################
 #See vignette on how to get data files from Web site.
@@ -37,7 +37,11 @@ summary(ScSetNorm)
 # Compute the MAT scores and get the enriched regions
 # Note that we only need to specify a unique name identifier for the control, here it is SUP
 # So it's always a good idea to use unique identifiers for control and treatment
-ScScore<-MATScore(ScSetNorm, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, method="score", threshold=5, verbose=TRUE, bedName="MyBedFile")
+#ScScore<-MATScore(ScSetNorm, cName=NULL, dMax=600, nProbesMin=8, dMerge=300, method="score", threshold=5, verbose=TRUE, bedName="MyBedFile")
+
+RD<-computeMATScore(ScSetNorm,cName=NULL, dMax=600, verbose=TRUE) 
+
+Enrich<-callEnrichedRegions(RD,dMax=600, dMerge=300, nProbesMin=8, method="score", threshold=1, verbose=FALSE)  
 
 # Show the object
 show(ScScore)
@@ -45,42 +49,55 @@ show(ScScore)
 # summarize its content
 summary(ScScore)
 
-# This is using the GenomeGraphs package
 
+# You have 2 possibilities to visualize data 
+
+############################################
+# 1) rtracklayer package
+##########################################
+library(rtracklayer)
+
+#Export to BED format :
+export(Enrich,"EnrichedData.bed")
+
+genome(Enrich)<-"sacCer2"
+names(Enrich)<-"chrI"
+
+#Viewing the targets
+session<- browserSession("UCSC")
+track(session,"target") <- Enrich
+
+#Get the first feature
+subEnrich<-Enrich[2,]
+
+#View with GenomeBrowser
+view<- browserView(session,range(subEnrich) * -2)
+
+
+#############################################
+# 2) This is using the GenomeGraphs package
+##########################################
 library(GenomeGraphs)
 mart<-useMart("ensembl", dataset = "scerevisiae_gene_ensembl")
 genomeAxis<-makeGenomeAxis(add53 = TRUE,add35 = TRUE)
 
-# Here I only look at chr1 between 1 and 200000
+# Here I only look at chr1 between 1 and 50000
 
 minbase<-1 
-maxbase<-100000 
+maxbase<-50000 
+
 genesplus<-makeGeneRegion(start = minbase, end = maxbase, strand = "+", chromosome = "I", biomart = mart) 
 genesmin<-makeGeneRegion(start = minbase, end = maxbase, strand = "-", chromosome = "I", biomart = mart)
 
 # Here I create a Generic array for chr1 ony
-
-MatScore<-makeGenericArray(intensity=as.matrix(ScScore@score[ScScore@featureChromosome=="chr1"]),  probeStart=ScScore@featurePosition[ScScore@featureChromosome=="chr1"], dp=DisplayPars(size=1, color="black", type="l"))
+RD1<-RD[space(RD)=="chr1",]
+Enrich1<-Enrich[space(Enrich)=="chr1",]
+MatScore<-makeGenericArray(intensity=as.matrix(score(RD1)),  probeStart=start(RD1), dp=DisplayPars(size=1, color="black", type="l"))
 
 # Here I create overlays to look at the enriched regions (above>threshold)
-
-featurePositionForRegion<-ScScore@featurePosition[ScScore@featureChromosome=="chr1" & ScScore@featurePosition< maxbase & ScScore@featurePosition> minbase]
-regIndexForRegion<-ScScore@regIndex[ScScore@featureChromosome=="chr1" & ScScore@featurePosition< maxbase & ScScore@featurePosition> minbase]
-RegionUnique<-unique(regIndexForRegion[regIndexForRegion>0])
-rectList<-vector("list",length(RegionUnique))
-for(i in 1:length(RegionUnique))
-{
-  ## Minimum
-  m<-min(featurePositionForRegion[regIndexForRegion==RegionUnique[i]])
-  ## Maximum
-  M<-max(featurePositionForRegion[regIndexForRegion==RegionUnique[i]])
-  rectList[i] <- makeRectangleOverlay(start = m, end = M, region = c(1, 4), dp = DisplayPars(color = "green", alpha = 0.1))
-}
+rectList<- makeRectangleOverlay(start = start(Enrich1), end = end(Enrich1), region = c(1, 4), dp = DisplayPars(color = "green", alpha = 0.1))
 
 gdPlot(list("score" = MatScore, "Gene +" = genesplus, Position = genomeAxis, "Gene -" = genesmin), minBase = minbase, maxBase = maxbase, labelCex = 1, overlays=rectList) 
 
 
-
-
-#getBM(attributes=c("chromosome_name","uniprot_swissprot","start_position","sequence_gene_chrom_start","end_position"), filters=c("chromosome_name","start","end"), values=list (Nom_chromosome,50679523,51195524), mart=ensembl)
 
