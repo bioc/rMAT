@@ -56,13 +56,15 @@ void createPairMatrixCount(gsl_matrix *pairNumCount1,
 void createDesignMatrixPair( gsl_matrix *seqNumCount, gsl_matrix *pairNumMatrix, gsl_vector *copyNumber, gsl_matrix *X, char **seq);
 void createDesignMatrixPairRow( gsl_matrix *seqNumCount, gsl_matrix *pairNumMatrix, gsl_vector *copyNumber, gsl_vector *XRow, int i, char **seq);
 
-void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int *position, double dMax, int nProbesMin, double *MATScores, int *seqNum, double *totalSeqsPosition);
-void MATNullDistribution(int *position, int nProbes, double dMax, double *MATScore, double *sigma0, double *mu0, int  *seqNum, double totalSeqsPosition);
+void MATScore(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *position, double *dMax, double *MATScores, int *seqNum);
+void MATNullDistribution(int *position, int *nProbes, double *dMax, double *MATScore, double *sigma0, double *mu0, int  *seqNum);
 void MATpValue(int nProbes, double *MATScore, double sigma0, double mu0, double *pValues);
 double MATcutoffFDR(int *position, int nProbes, double dMax, double *MATScores, double mu0, double FDR, int *regions, int *seqNum);
 int mergeMATScores(int *position, int nProbes, double dMerge, double *MATScores, double m0, double cutoff, int sign, int *regions, int *Mum);
-void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *position, double *dMax, double *dMerge, int *nProbesMin, double *threshold, double *MATScores, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions);
+void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *position, double *dMax, double *dMerge, double *threshold, double *MATScores, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions);
 void NormalizeProbes(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, int *method, int *robust, double *adjRSquare, double *RSquare, double *BIC, double *outBeta, int *betaLength, int *all,  int *MATScaling,int *isVerbose);
+void getIndices(int *regions, int *nProbes, int *numRegions, int *StartRegion, int *EndRegion);
+void callEnrichedRegions(double *MATScores, int *nProbes, int *position, double *dMerge, double *dMax, double *threshold, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions);
 
 /** Main method to normalize probes**/
 void NormalizeProbes(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, 
@@ -688,26 +690,89 @@ void createPairMatrixCount(gsl_matrix *pairNumCount1,
 }
 
 
-/*\ Assume data already sorted by sequence number, then by position */
-void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *position, double *dMax, double *dMerge, 
-  int *nProbesMin, double *threshold, double *MATScores, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions)
+void callEnrichedRegions(double *MATScores, int *nProbes, int *position, double *dMerge, double *dMax, double *threshold, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions)
 {
 
   double sigma0=0, mu0=0, cutoff=0;
   double totalSeqsPosition=0;
-  // if(*verbose)
-  // {
-  //   printf("** Compute MAT Scores **\n");
-  // }
-  /** Compute the MAT Scores **/
-  MATScore(C, I, *nProbes, *nArraysC, *nArraysI, position, *dMax, *nProbesMin, MATScores, seqNum, &totalSeqsPosition);
+
+  /** Compute the associated pValues **/
+  MATNullDistribution(position, nProbes, dMax, MATScores, &sigma0, &mu0, seqNum);
   
+  /** Compute the FDR cutoff **/
+  if(*method==1) /** Based on MAT scores **/
+  {
+    if(*verbose)
+    {
+      printf("** Merging regions **\n");  
+    }        
+    numRegions[0] = mergeMATScores(position, *nProbes, *dMerge, MATScores, mu0, *threshold, 1, regions, seqNum);
+  }
+  else if(*method==2)
+  {
+    if(*verbose)
+    {
+      printf("** Calculating P-values **\n");  
+    }    
+    MATpValue(*nProbes, MATScores, sigma0, mu0, pValues);
+    if(*verbose)
+    {
+      printf("** Merging regions **\n");  
+    }        
+    numRegions[0] = mergeMATScores(position, *nProbes, *dMerge, pValues, 0, *threshold, -1, regions, seqNum);
+  }
+  else if(*method==3)
+  {
+    if(*verbose)
+    {
+      printf("** Calculating FDR **\n");  
+    }    
+    
+    cutoff=MATcutoffFDR(position, *nProbes, *dMerge, MATScores, mu0, *threshold, regions, seqNum);
+    if(*verbose)
+    {
+      printf("** Merging regions **\n");  
+    }    
+    /** Form the regions using the threshold found **/
+    numRegions[0] = mergeMATScores(position, *nProbes, *dMerge, MATScores, mu0, cutoff, 1, regions, seqNum);
+  }
+}
+
+void getIndices(int *regions, int *nProbes, int *numRegions, int *StartRegion, int *EndRegion)
+{
+  int i=0;
+  int count=0;
+  
+  for(i=1;i<=*numRegions;i++)
+  {
+    while((regions[count]<i | regions[count]==0) & count<*nProbes)
+    {
+      count++;
+    }
+    StartRegion[i-1]=count+1;
+    while(regions[count]==i & count<*nProbes)
+    {
+      count++;
+    }
+    EndRegion[i-1]=count;
+  }
+}
+
+
+/*\ Assume data already sorted by sequence number, then by position */
+void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *position, double *dMax, double *dMerge, double *threshold, double *MATScores, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions)
+{
+
+  double sigma0=0, mu0=0, cutoff=0;
+  double totalSeqsPosition=0;
+
+  MATScore(C, I, nProbes, nArraysC, nArraysI, position, dMax, MATScores, seqNum);
   if(*verbose)
   {
     printf("** Estimate Null distribution **\n");
   }
   /** Estimate the Null distributions **/
-  MATNullDistribution(position, *nProbes, *dMax, MATScores, &sigma0, &mu0, seqNum, totalSeqsPosition);
+  MATNullDistribution(position, nProbes, dMax, MATScores, &sigma0, &mu0, seqNum);
 
   if(*verbose)
   {
@@ -736,7 +801,7 @@ void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *
 /*printf("num regions is %d", numRegions[0]);*/
 }
 
-void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int *position, double dMax, int nProbesMin, double *MATScores, int *seqNum, double *totalSeqsPosition)
+void MATScore(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *position, double *dMax, double *MATScores, int *seqNum)
 {
   int pMin=0,pMax=0;
   double cMin=0,cMax=0;
@@ -747,25 +812,12 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
   int nProbesRegion=0, nProbesNotTrimmed=0;
   int i,j,k,p;
 
-  *totalSeqsPosition=0;
-
+  
   pMin=0;
   pMax=0;
 
-  int curSeqStartPos=-1;
-  int curSeqNum=-1;
-  for(i=0;i<nProbes;i++)
+  for(i=0;i<*nProbes;i++)
   {
-    if(curSeqNum!=seqNum[i])
-    {
-      curSeqNum=seqNum[i];
-      curSeqStartPos=position[i];
-    }
-    if((i+1==nProbes) | (curSeqNum!=seqNum[i+1]))
-    {
-      (*totalSeqsPosition)+=(double)(position[i]-curSeqStartPos);
-    }
-
     /* Current implementation is such that it is within 600 bp from pMin to i and another 600bp from i to pMax*/
     if((seqNum[pMin]!=seqNum[i]) && (seqNum[pMax]!=seqNum[i]))
     {
@@ -778,29 +830,26 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
       error("Check that your intensities are ordered by chromosome then by position \n");
     }
     /* It was sorted.. so no need abs(); pMin keeps moving WRT to i */
-    while((pMin < i) &&  ((position[i] - position[pMin])>dMax/2.) && (seqNum[pMin]==seqNum[i]))
+    while((pMin < i) &&  ((position[i] - position[pMin])>*dMax/2.) && (seqNum[pMin]==seqNum[i]))
     {
       pMin++;
     }
     /* should be position[pMin+1] so it is always within */
-    while((pMax<nProbes) && ((position[pMax+1]-position[i])<=dMax/2.) && (seqNum[pMax+1]==seqNum[i]) && (pMax+1 < nProbes))
+    while((pMax<*nProbes) && ((position[pMax+1]-position[i])<=*dMax/2.) && (seqNum[pMax+1]==seqNum[i]) && (pMax+1 < *nProbes))
     {
       pMax++;
     }
     /* If there is only one probe we skip it */
     if(pMax-pMin>0)
     {
-    // /** Check whether there are enough probes in the region **/      
-    // if((pMax-pMin)>nProbesMin)
-    // {
       MC=0,MI=0;
       nProbesNotTrimmed=0;
 
-      if(nArraysC>0)
+      if(*nArraysC>0)
       {
         /*If information about control is available, we should integrate it into our study */
-        nProbesRegion=(pMax-pMin)*nArraysC;                                   
-        dataInRegion=C+pMin*nArraysC;
+        nProbesRegion=(pMax-pMin)**nArraysC;
+        dataInRegion=C+pMin**nArraysC;
         /** Vector view of the window data **/
         vectorTmp=gsl_vector_view_array(dataInRegion, nProbesRegion);
         /** Allocate a vector to store the probe measurements within the window **/
@@ -817,11 +866,11 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
         /** Computing the Control's Trimmed Mean **/
         for(k=pMin;k<pMax;k++)
         {
-          for(j=0;j<nArraysC;j++)
+          for(j=0;j<*nArraysC;j++)
           {
-            if((C[k*nArraysC+j]>=cMin) & (C[k*nArraysC+j]<=cMax))
+            if((C[k**nArraysC+j]>=cMin) & (C[k**nArraysC+j]<=cMax))
             {
-              MC+=C[k*nArraysC+j];
+              MC+=C[k**nArraysC+j];
               nProbesNotTrimmed++;
             }
           }
@@ -832,8 +881,8 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
 
       /* For the Immunoprecipitated Array*/
       nProbesNotTrimmed=0;
-      nProbesRegion=(pMax-pMin)*nArraysI;
-      dataInRegion=I+pMin*nArraysI;
+      nProbesRegion=(pMax-pMin)**nArraysI;
+      dataInRegion=I+pMin**nArraysI;
 
       /** Vector view of the window data **/
       vectorTmp=gsl_vector_view_array(dataInRegion, nProbesRegion);
@@ -841,7 +890,6 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
       vectorInRegion=gsl_vector_alloc(nProbesRegion);
       /** Copy the probe measurements within the window **/
       gsl_vector_memcpy(vectorInRegion,&vectorTmp.vector);
-
       /** Sort the probe measurements within the window **/
       gsl_sort_vector(vectorInRegion);
       /** Compute the .1 and .9 quantiles **/
@@ -853,11 +901,11 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
       /** Computing the IP treated sample's trimmed mean **/
       for(k=pMin;k<pMax;k++)
       {
-        for(j=0;j<nArraysI;j++)
+        for(j=0;j<*nArraysI;j++)
         {
-          if((I[k*nArraysI+j]>=cMin) & (I[k*nArraysI+j]<=cMax))
+          if((I[k**nArraysI+j]>=cMin) & (I[k**nArraysI+j]<=cMax))
           {
-            MI+=I[k*nArraysI+j];
+            MI+=I[k**nArraysI+j];
             nProbesNotTrimmed++;
           }
         }
@@ -867,8 +915,7 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
       if(nProbesNotTrimmed>0)
       {
         MI=MI/nProbesNotTrimmed;
-        // MATScores[i]=sqrt((pMax-pMin))*(MI-MC);
-        MATScores[i]=sqrt((pMax-pMin)*.8)*(sqrt(nArraysI)*MI-sqrt(nArraysC)*MC);        
+        MATScores[i]=sqrt((pMax-pMin)*.8)*(sqrt(*nArraysI)*MI-sqrt(*nArraysC)*MC);
       }
       else
       {
@@ -877,35 +924,51 @@ void MATScore(double *C, double *I, int nProbes, int nArraysC, int nArraysI, int
     }
     else
     {
-      MATScores[i]=0.0;       
+      MATScores[i]=0.0;
     }
-  }  
+  }
 }
 
-void MATNullDistribution(int *position, int nProbes, double dMax, double *MATScores, double *sigma0, double *mu0, int *seqNum, double totalSeqsPosition)
+void MATNullDistribution(int *position, int *nProbes, double *dMax, double *MATScores, double *sigma0, double *mu0, int *seqNum)
 {
   /** Number of regions used to estimate the null distribution **/
   /**Assume position vector sorted **/
   /**  int nRegionsMax=(int) (((position[nProbes-1]-position[0])/dMax)+5),nRegions=0; **/
-  int nRegionsMax = (int)(totalSeqsPosition/dMax)+5, nRegions=0;
-
+  int nRegionsMax = 0, nRegions=0;
+  double totalSeqsPosition=0;
   int i,p0,p1;
+  int curSeqStartPos=-1;
+  int curSeqNum=-1;
+  
+  for(i=0;i<*nProbes;i++)
+  {
+    if(curSeqNum!=seqNum[i])
+    {
+      curSeqNum=seqNum[i];
+      curSeqStartPos=position[i];
+    }
+    if((i+1==*nProbes) | (curSeqNum!=seqNum[i+1]))
+    {
+      totalSeqsPosition+=(double)(position[i]-curSeqStartPos);
+    }
+    nRegionsMax = (int)(totalSeqsPosition/(*dMax))+5;
+  }
 
   gsl_vector *NoOverLapMATScores=gsl_vector_calloc(nRegionsMax);
   gsl_vector *NoOverLapMATScoresMinus;
 
   p0=0;p1=0;
-  while(p1<nProbes)
+  while(p1<*nProbes)
   {
       /** If a score is zero, keep going **/
-    while((p1<nProbes) && (MATScores[p1]==0))
+    while((p1<*nProbes) && (MATScores[p1]==0))
     {
       p1++;
     }
     gsl_vector_set(NoOverLapMATScores,nRegions,MATScores[p1]);
     nRegions++;
     
-    while((p1<nProbes) && (position[p1]-position[p0])<=dMax && (seqNum[p1]==seqNum[p0]))
+    while((p1<*nProbes) && (position[p1]-position[p0])<=(*dMax) && (seqNum[p1]==seqNum[p0]))
     {
       p1++;
     }
@@ -931,9 +994,6 @@ void MATNullDistribution(int *position, int nProbes, double dMax, double *MATSco
   *sigma0=gsl_stats_sd(NoOverLapMATScoresMinus->data, 1, nRegions);
   // *sigma0=sqrt(2)*gsl_stats_sd(NoOverLapMATScores->data, 1, nRegions/2);
   
-  // printf("mu0=%lf\n",*mu0);
-  /*   printf("mu0=%g\n",*mu0); */
-  // printf("sigma0=%lf\n",*sigma0); 
   gsl_vector_free(NoOverLapMATScores);
   gsl_vector_free(NoOverLapMATScoresMinus);
 }
@@ -961,7 +1021,6 @@ double MATcutoffFDR(int *position, int nProbes, double dMerge, double *MATScores
 
   while((proposeCutoff<50) && (estimatedFDR > FDR))
   {
-    // printf("The cutoff is now %lf\n", proposeCutoff);
     nPositive=mergeMATScores(position, nProbes, dMerge, MATScores, mu0, proposeCutoff, 1, regions, seqNum);
     nNegative=mergeMATScores(position, nProbes, dMerge, MATScores, mu0, -proposeCutoff, -1, regions, seqNum);
     if(nPositive>0)
@@ -974,30 +1033,8 @@ double MATcutoffFDR(int *position, int nProbes, double dMerge, double *MATScores
     }
     /* Increase the cutoff */
     proposeCutoff=proposeCutoff+step;
-    // printf("estimatedFDR is %lf and the desired FDR is %lf.\n", estimatedFDR, FDR);
-    // printf("** The estimated FDR is: %lf **\n",estimatedFDR);
-    // printf("** nNegative=%d **\n",nNegative);
-    // printf("** nPositive=%d **\n",nPositive);
-    
-    // else
-    // {
-    // /* if lowered the estimatedFDR too much, we should not accept proposed cutoff and starts halving in each turn */
-    //   if(curStep==INITIALSTEP)
-    //   {
-    //     notInitial=1; /*not initial anymore... curStep dividing should proceed now*/
-    //   }
-    // }
-    // 
-    // if(notInitial)
-    // {
-    //   curStep=curStep/2;
-    // }
+ 
   }
-
-  // printf("** The estimated FDR is: %lf **\n",estimatedFDR);
-  // printf("** nNegative=%d **\n",nNegative);
-  // printf("** nPositive=%d **\n",nPositive);
-
   return(proposeCutoff);  
 }
 
@@ -1021,7 +1058,7 @@ int mergeMATScores(int *position, int nProbes, double dMerge, double *MATScores,
       max=p;
       ww=p;
       /*Scan through the whole MAT Region */
-      /** Here we make sure we are on the same chromosone **/
+      /** Here we make sure we are on the same chromosome **/
       while((w<nProbes) && ((position[w]-position[ww])<=dMerge) && (seqNum[w]==seqNum[ww]))
       {
         if(((MATScores[w]-m0>cutoff) && (sign==1)) || ((MATScores[w]-m0<cutoff) && (sign==-1)))
@@ -1045,79 +1082,5 @@ int mergeMATScores(int *position, int nProbes, double dMerge, double *MATScores,
   }
   return(nRegions);
 }
-
-void MATRegions(double *MATScores, int *seqNum, int *position, int *region, int *totalProbes, int *St, int *End, int *Length, double *rMATScore, int *Peak_Pos, char **Chr, char **Name, char **FileName, int *totalRegions)
-{
-
-
-  int i, curRegion=0, isStart=0, startIndex, curPeakIndex=-9999;
-  double curPeak = -9999.;
-  int nProbes = *totalProbes;
-  double curMATSum = 0;
-  for(i=0; i<(nProbes); i++){
-    /** case 1 - region is detected **/
-    if((region[i] != 0)&&(isStart==0)){
-      St[curRegion] = position[i];
-
-      Chr[curRegion] = Calloc(20, char);
-      char chNoStr[10]="";
-      sprintf(chNoStr, "%d", seqNum[i]);
-      strcpy(Chr[curRegion], "chr");
-      strcat(Chr[curRegion], chNoStr);
-
-      Name[curRegion]=Calloc(20, char);
-      char curRegionPlusOneStr[10]="";
-      sprintf(curRegionPlusOneStr, "%d", curRegion);
-      strcpy(Name[curRegion], "mat_");
-      strcat(Name[curRegion], curRegionPlusOneStr);
-
-      startIndex = i;
-      curPeakIndex = i;
-      curMATSum = MATScores[i];			
-      isStart=1;
-    }	
-
-    /**case 2 - once the region is detected, update the peak**/
-    if( (region[i] ==curRegion+1) && (isStart == 1))
-    {
-      if(MATScores[i] > curPeak)
-      {
-        curPeak=MATScores[i];
-        curPeakIndex = i;
-      }
-      curMATSum+=MATScores[i];
-    }
-
-    /** case 3- if the next region is no longer in the same region, write the current region as the last **/ 
-    if(((i+1)==nProbes)||((region[i+1] != (curRegion+1)) && (isStart==1)))
-    {
-      End[curRegion] = position[i];
-      Length[curRegion] = End[curRegion] - St[curRegion];
-      Peak_Pos[curRegion] = position[curPeakIndex] - St[curRegion];
-      /**rMATScore[curRegion] = MATScores[curPeakIndex];  //instead of finding the max, we want the average **/
-      rMATScore[curRegion] = curMATSum/(i-startIndex+1) ;
-      isStart = 0;
-      curPeak=-9999;
-      curPeakIndex = -9999;
-      curRegion++;
-    }
-
-    if(curRegion>=(*totalRegions))
-    {
-      /*printf("break is run at %d\n", curRegion); */
-      break;
-    }
-  }
-
-  FILE *myWriteFile = fopen(*FileName, "w");
-
-  for (i=0;i<*totalRegions; i++)
-  {
-    fprintf (myWriteFile, "%s\t%d\t%d\t%s\t%lf\n", Chr[i], St[i], End[i], Name[i], rMATScore[i]);
-  }  
-
-  fclose(myWriteFile);
-}
-
 
 
