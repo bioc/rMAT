@@ -2,6 +2,7 @@
 ## NAMESPACE file for MAT library.
 ##
 useDynLib(rMAT)
+importClassesFrom(IRanges, RangedData)
 
 ## export anything w/out a dot in front. 
 exportPattern("^[^\\.]")
