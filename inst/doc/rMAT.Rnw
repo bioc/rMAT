@@ -143,19 +143,41 @@ For a comprehensive list of parameters you can adjust in MATScore, please refer 
 Another note is that if FDR is used, threshold should be set in the range between 0 and 1.
 
 <<COMPUTING rMAT SCORES>>=
-ScScore<- MATScore(ScSetNorm, cName=NULL, dMax=600,nProbesMin=8, dMerge=300,method="score",threshold=5,verbos=TRUE,bedName="MyBedFile")
+RD<-computeMATScore(ScSetNorm,cName=NULL, dMax=600, verbose=TRUE) 
+Enrich<-callEnrichedRegions(RD,dMax=600, dMerge=300, nProbesMin=8, method="score", threshold=1, verbose=FALSE)  
 @
 
 
-\section{Creating an Ensembl annotation graphic}
-rMAT results can benefit from integreated visualisation of the genomic information. We have decided to use the \href{http://www.bioconductor.org/packages/2.2/bioc/html/GenomeGraphs.html}{GenomeGraphs package}.This package uses the biomaRt package to deliver queries to Ensembl e.g. gene/transcript structures to viewports of the grid package, resulting in genomic information plotted together with your data. 
+\section{Creating an annotation graphic}
+rMAT results can benefit from integreated visualisation of the genomic information. We have decided to use the rtrackalayer  or GenomeGraphs package \href{http://www.bioconductor.org/packages/2.2/bioc/html/GenomeGraphs.html}{GenomeGraphs package}.This last package uses the biomaRt package to deliver queries to Ensembl e.g. gene/transcript structures to viewports of the grid package, resulting in genomic information plotted together with your data. 
 
 To load the GenomeGraphs package in R, we type 
 <<Reading library>>=
 library(GenomeGraphs)
+library(rtracklayer)
 @
 
-\section{Plotting a Gene}
+\section{Plotting a Gene with rtracklayer}
+
+
+<<rtracklayer annotation>>=
+
+genome(Enrich)<-"sacCer2"
+names(Enrich)<-"chrI"
+
+#Viewing the targets
+session<- browserSession("UCSC")
+track(session,"toto") <- Enrich
+
+#Get the first feature
+subEnrich<-Enrich[2,]
+
+#View with GenomeBrowser
+view<- browserView(session,range(subEnrich) * -2)
+@
+
+
+\section{Plotting a Gene wiht GenomeGraphs}
 If one wants to plot annotation information from Ensembl then you need to connect to Ensembl BioMArt using the useMart function of the biomaRt package.
 
 <<Ensembl BioMart>>=
@@ -170,39 +192,23 @@ In the example below we will retrieve the genes of the chromsome (I) between 1 a
 <<Genome Axis>>=
 genomeAxis<-makeGenomeAxis(add53 = TRUE, add35=TRUE)
 minbase<-1
-maxbase<-100000
+maxbase<-50000
 @
 
-<<Plotting Gene,eval=FALSE>>=
+<<Plotting Gene>>=
 genesplus<-makeGeneRegion(start = minbase, end = maxbase, strand = "+", chromosome = "I", biomart = mart) 
 genesmin<-makeGeneRegion(start = minbase, end = maxbase, strand = "-", chromosome = "I", biomart = mart)
 @
 We create a Generic Array for chromosome I only 
 
-<<MatScore for chromosome I,eval=FALSE>>=
-MatScore<-makeGenericArray(intensity=as.matrix(ScScore@score[ScScore@featureChromosome=="chr1"]),  probeStart=ScScore@featurePosition[ScScore@featureChromosome=="chr1"], dp=DisplayPars(size=1, color="black", type="l"))
+<<MatScore for chromosome I>>=
+RD1<-RD[space(RD)=="chr1",]
+Enrich1<-Enrich[space(Enrich)=="chr1",]
+MatScore<-makeGenericArray(intensity=as.matrix(score(RD1)),  probeStart=start(RD1), dp=DisplayPars(size=1, color="black", type="l"))
+rectList<- makeRectangleOverlay(start = start(Enrich1), end = end(Enrich1), region = c(1, 4), dp = DisplayPars(color = "green", alpha = 0.1))
 @
 
-\section{Overlay for enriched regions}
-
-Overlays can be used to look enriched regions of the plot.
-
-<<Overlays,eval=FALSE>>=
-featurePositionForRegion<-ScScore@featurePosition[ScScore@featureChromosome=="chr1" & ScScore@featurePosition< maxbase & ScScore@featurePosition> minbase]
-regIndexForRegion<-ScScore@regIndex[ScScore@featureChromosome=="chr1" & ScScore@featurePosition< maxbase & ScScore@featurePosition> minbase]
-RegionUnique<-unique(regIndexForRegion[regIndexForRegion>0])
-rectList<-vector("list",length(RegionUnique))
-for(i in 1:length(RegionUnique))
-{
-  ## Minimum
-  m<-min(featurePositionForRegion[regIndexForRegion==RegionUnique[i]])
-  ## Maximum
-  M<-max(featurePositionForRegion[regIndexForRegion==RegionUnique[i]])
-  rectList[i] <- makeRectangleOverlay(start = m, end = M, region = c(1, 4), dp = DisplayPars(color = "green", alpha = 0.1))
-}
-@
-
-<<fig=TRUE,eval=FALSE>>=
+<<fig=TRUE,eval=false>>=
 gdPlot(list("score" = MatScore, "Gene +" = genesplus, Position = genomeAxis, "Gene -" = genesmin), minBase = minbase, maxBase = maxbase, labelCex = 1, overlays=rectList) 
 @
 
