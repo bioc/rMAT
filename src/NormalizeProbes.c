@@ -24,6 +24,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(__APPLE__) || defined(macintosh)
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+    // Use Grand Central on Snow Leopard
+    // note use of 1060 instead of __MAC_10_6
+    #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+      #include <dispatch/dispatch.h>
+    #endif
+#endif
+#endif
+
 int convertSeq(char seq);
 int convertNum(char seq1, char seq2);
 
@@ -65,317 +75,145 @@ void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *
 void NormalizeProbes(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, int *method, int *robust, double *adjRSquare, double *RSquare, double *BIC, double *outBeta, int *betaLength, int *all,  int *MATScaling,int *isVerbose);
 void getIndices(int *regions, int *nProbes, int *numRegions, int *StartRegion, int *EndRegion);
 void callEnrichedRegions(double *MATScores, int *nProbes, int *position, double *dMerge, double *dMax, double *threshold, double *pValues, int *method, int *regions, int *verbose, int *seqNum, int *numRegions);
+void normArray(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, int *method, int *robust, double *adjRSquare, double *RSquare, double *BIC, double *outBeta, int *betaLength, int *all,  int *MATScaling,int *isVerbose, 
+               gsl_matrix *pairNumCount1, gsl_matrix *pairNumCount2, gsl_matrix *pairNumCount3, gsl_matrix *pairNumCount4,
+               gsl_matrix *seqNumCount,
+               int nProbesTotal,
+               int nVariables,
+               int nBins,
+               int nProbesPerBin,
+               gsl_vector_view yVector, gsl_vector_view copyNumberVector,
+               int j);
 
 /** Main method to normalize probes**/
-void NormalizeProbes(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, 
-  int *method, int *robust, double *adjRSquare, double *RSquare, double *BIC, double *outBeta, int *betaLength, int *all,  int *MATScaling,int *isVerbose)
-{
-
-/** Declaring gsl variables **/
-  gsl_vector_view yVector,copyNumberVector,xRow,xCol;
-  gsl_matrix_view pairNumMatrix,seqNumMatrix,HSub;
-  gsl_matrix *H,*HRobust, *X, *seqNumCount;
-  gsl_matrix *pairNumCount1, *pairNumCount2, *pairNumCount3, *pairNumCount4;
-  gsl_vector *beta,*betaTmp,*weight,*fittedSorted;
-  gsl_vector *sdBins,*yBin, *XR;
-  gsl_permutation *indexSorted;
-
-  int nProbesTotal=*nProbes;
-  double RSS=0,TSS=0,meanY=0;
-  int i=0,j=0,k=0,l=0,nVariables;
-
-  /**if not using all probes to compute (for faster computation), then use the minimum of 300,000 or number of probes, which ever is less **/
-  if((*all)==0)
-  {
-    *nProbes=GSL_MIN_INT(300000,*nProbes);
-  }
-
-  /** Number of bins used in the MAT normalization **/
-  int nBins=100;
-  /** Average number of probes per bins **/
-  int nProbesPerBin=(nProbesTotal)/nBins;
-
-  weight=gsl_vector_calloc(*nProbes);
-  fittedSorted=gsl_vector_calloc(nProbesTotal);
-
-  if((*MATScaling)==1)
-  {
-    sdBins=gsl_vector_calloc(nBins);
-    // yBin=gsl_vector_calloc(nProbesTotal-nProbesPerBin*(nBins-1)+1);
-    yBin=gsl_vector_calloc(nProbesPerBin+nProbesTotal-nProbesPerBin*(nBins-1)+1);
-  }
-
-  copyNumberVector=gsl_vector_view_array(copyNumber,nProbesTotal);
-  seqNumCount=gsl_matrix_calloc(nProbesTotal,4);
-
-  /*****************************************************************************************************/
-  if(*isVerbose)
-  {
-    printf("** Create count matrices **\n");
-  }
-  createSeqMatrixCount(seqNumCount, seq);
-
-  /*****************************************************************************************************/
-  if(*isVerbose)
-  {
-    printf("** Set up the design matrix **\n");
-  }
-
-  if(*method==1) /** This is the MAT model **/
-  {
-    nVariables=1+3*25+4+1;
-    X=gsl_matrix_calloc(*nProbes,nVariables);
-    XR=gsl_vector_calloc(nVariables);
-    createDesignMatrixMAT(seqNumCount, &copyNumberVector.vector, X, seq);
-  }
-  else  /** This is the pair binned model --into 4 bins**/
-  {
-    nVariables=73;
-    pairNumCount1=gsl_matrix_calloc(nProbesTotal,16);
-    pairNumCount2=gsl_matrix_calloc(nProbesTotal,16);
-    pairNumCount3=gsl_matrix_calloc(nProbesTotal,16);
-    pairNumCount4=gsl_matrix_calloc(nProbesTotal,16);
-    createPairMatrixCount(
-      pairNumCount1, 
-      pairNumCount2, 
-      pairNumCount3,
-      pairNumCount4,
-      seq);
-    X=gsl_matrix_calloc(*nProbes, nVariables);
-    createDesignMatrixPairBinned(seqNumCount, 
-      pairNumCount1,
-      pairNumCount2,
-      pairNumCount3,
-      pairNumCount4,
-      &copyNumberVector.vector, X);
-    XR=gsl_vector_calloc(nVariables);      
-    /**Freeing up the temporarily created files **/
-  }
-
-/*****************************************************************************************************/
-
-  if(*isVerbose)
-  {
-    printf("** Compute X'X **\n");
-  }
-
-  beta=gsl_vector_alloc(nVariables);
-  betaTmp=gsl_vector_alloc(nVariables);
-  H=gsl_matrix_calloc(nVariables,nVariables);
-  indexSorted=gsl_permutation_calloc(nProbesTotal);
-
-  gsl_blas_dsyrk(CblasLower, CblasTrans, 1.0, X, 0, H);
-  /** Cholesky decomposition of H **/
-  gsl_linalg_cholesky_decomp(H);
-
-  for(j=0;j<*nArrays;j++)
-  {      
-
-    if(*isVerbose)
-    {
-      printf("** Start normalization of array %d **\n",j);
-    }
-    /** Select the array **/
-    yVector=gsl_vector_view_array(y+j*nProbesTotal, *nProbes);
-    /** Compute X'y **/
-    gsl_blas_dgemv(CblasTrans, 1.0, X, &yVector.vector, 0.0, betaTmp);
-
-    /** Compute (X'X)^{-1}X'y **/
-    gsl_linalg_cholesky_solve(H, betaTmp, beta);
-
-    RSS=0;TSS=0;
-    meanY=gsl_stats_mean(y+j*nProbesTotal,1,*nProbes);
-
-    for(i=0;i<nProbesTotal;i++)
-    {
-      if(i<(*nProbes))
+      void NormalizeProbes(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, int *method, int *robust, double *adjRSquare, double *RSquare, double *BIC, double *outBeta, int *betaLength, int *all,  int *MATScaling,int *isVerbose)
       {
-        xRow=gsl_matrix_row(X,i);
-        /** Compute the fitted data X(X'X)^{-1}X'y **/
-        gsl_blas_ddot(&xRow.vector, beta, yNormalized+j*nProbesTotal+i);
-        RSS+=gsl_pow_2(y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i]);
-        TSS+=gsl_pow_2(y[j*nProbesTotal+i]-meanY);
-      }
-      else
-      {
-        /** Need to get the corresponding row of the design matrix **/
-        if(*method==1)
+
+      /** Declaring gsl variables **/
+        gsl_vector_view yVector,copyNumberVector;
+        // gsl_matrix_view pairNumMatrix,seqNumMatrix;
+        gsl_matrix *seqNumCount;
+        gsl_matrix *pairNumCount1=NULL, *pairNumCount2=NULL, *pairNumCount3=NULL, *pairNumCount4=NULL;
+
+        int nProbesTotal=*nProbes;
+        int j=0,nVariables;
+        #if defined(__APPLE__) || defined(macintosh) 
+        #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+            // Use Grand Central on Snow Leopard
+            // note use of 1060 instead of __MAC_10_6
+            #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+                dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+            #endif
+        #endif
+        #endif
+
+        /**if not using all probes to compute (for faster computation), then use the minimum of 300,000 or number of probes, which ever is less **/
+        if((*all)==0)
         {
-          createDesignMatrixMATRow(seqNumCount, &copyNumberVector.vector, XR, i, seq);
+          *nProbes=GSL_MIN_INT(300000,*nProbes);
         }
-        else
+
+        /** Number of bins used in the MAT normalization **/
+        int nBins=100;
+        /** Average number of probes per bins **/
+        int nProbesPerBin=(nProbesTotal)/nBins;
+
+        copyNumberVector=gsl_vector_view_array(copyNumber,nProbesTotal);
+        seqNumCount=gsl_matrix_calloc(nProbesTotal,4);
+
+        /*****************************************************************************************************/
+        if(*isVerbose)
         {
-          createDesignMatrixPairBinnedRow(seqNumCount, 
-            pairNumCount1,
-            pairNumCount2,
+          printf("** Create count matrices **\n");
+        }
+        createSeqMatrixCount(seqNumCount, seq);
+        /*****************************************************************************************************/
+
+        if(*method==1) /** This is the MAT model **/
+        {
+          nVariables=1+3*25+4+1;
+        }
+        else  /** This is the pair binned model --into 4 bins**/
+        {
+          nVariables=73;
+          pairNumCount1=gsl_matrix_calloc(nProbesTotal,16);
+          pairNumCount2=gsl_matrix_calloc(nProbesTotal,16);
+          pairNumCount3=gsl_matrix_calloc(nProbesTotal,16);
+          pairNumCount4=gsl_matrix_calloc(nProbesTotal,16);
+          createPairMatrixCount(
+            pairNumCount1, 
+            pairNumCount2, 
             pairNumCount3,
             pairNumCount4,
-            &copyNumberVector.vector, XR,i);
+            seq);
         }
-        gsl_blas_ddot(XR, beta, yNormalized+j*nProbesTotal+i); 
-      }
-    }
-    /** Compute the residual and total SS **/	  
-    RSquare[j]=1.0-RSS/TSS;
-    adjRSquare[j]=1.0-(nProbesTotal-1.0)/(nProbesTotal-nVariables-1.0)*RSS/TSS;
-    BIC[j]=-*nProbes*log(RSS/(*nProbes))-nVariables*log(*nProbes);
+        #if defined(__APPLE__) || defined(macintosh)
+        #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+            // Use Grand Central on Snow Leopard
+            // note use of 1060 instead of __MAC_10_6
+            #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+        dispatch_apply(*nArrays, queue, ^(size_t jj) {normArray(seq, y, yNormalized, nProbes, nArrays, copyNumber, method, robust, adjRSquare, RSquare, BIC, outBeta, betaLength, all,  MATScaling, isVerbose, 
+          pairNumCount1, pairNumCount2, pairNumCount3, pairNumCount4,
+          seqNumCount,
+          nProbesTotal,
+          nVariables,
+          nBins,
+          nProbesPerBin,
+          yVector, copyNumberVector,
+          jj);
+        });
+            #endif
+            #if __MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+        for(j=0;j<*nArrays;j++)
+          normArray(seq, y, yNormalized, nProbes, nArrays, copyNumber, method, robust, adjRSquare, RSquare, BIC, outBeta, betaLength, all,  MATScaling, isVerbose, 
+          pairNumCount1, pairNumCount2, pairNumCount3, pairNumCount4,
+          seqNumCount,
+          nProbesTotal,
+          nVariables,
+          nBins,
+          nProbesPerBin,
+          yVector, copyNumberVector,
+          j);
+              #endif              
+        #endif
+        #endif
 
-    /* If we specify to use the robust estimate */
-    if(*robust==1)
-    {
-      if(*isVerbose){
-        printf("** Robust estimatation **\n");
-      }
+        #if !defined(__APPLE__) || !defined(macintosh)
+        for(j=0;j<*nArrays;j++)
+          normArray(seq, y, yNormalized, nProbes, nArrays, copyNumber, method, robust, adjRSquare, RSquare, BIC, outBeta, betaLength, all,  MATScaling, isVerbose, 
+          pairNumCount1, pairNumCount2, pairNumCount3, pairNumCount4,
+          seqNumCount,
+          nProbesTotal,
+          nVariables,
+          nBins,
+          nProbesPerBin,
+          yVector, copyNumberVector,
+          j);
+          #endif
 
 
-      for(i=0;i<*nProbes;i++)
-      {
-        /** Compute the weights (with 4 degrees of freedom) **/
-        gsl_vector_set(weight,i,(4.0+1.0)/(4.0+*nProbes/RSS*gsl_pow_2(y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i])));
-        /** Multiply each row of X by the weight **/
-        xRow=gsl_matrix_row(X,i);
-        gsl_vector_scale(&xRow.vector, sqrt(gsl_vector_get(weight,i)));
-        /** Multiply each observation by its weight **/
-        y[j*nProbesTotal+i]=sqrt(gsl_vector_get(weight,i))*y[j*nProbesTotal+i];
-      }
-
-
-      gsl_blas_dsyrk(CblasLower, CblasTrans, 1.0, X, 0, H);
-      /** Compute X'y **/
-      gsl_blas_dgemv(CblasTrans, 1.0, X, &yVector.vector, 0.0, betaTmp);
-      /** Cholesky decomposition of H **/
-      gsl_linalg_cholesky_decomp(H);
-      /** Compute (X'X)^{-1}X'y **/	
-      gsl_linalg_cholesky_solve(H, betaTmp, beta);
-
-      RSS=0;TSS=0;
-      meanY=gsl_stats_mean(y+j*nProbesTotal,1,*nProbes);
-      for(i=0;i<nProbesTotal;i++)
-      {
-        if(i<(*nProbes))
+        if(*method==2)
         {
-          xRow=gsl_matrix_row(X,i);
-          /** Compute the fitted data X(X'X)^{-1}X'y **/
-          gsl_blas_ddot(&xRow.vector, beta, yNormalized+j*nProbesTotal+i);
-          RSS+=gsl_pow_2(y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i]);
-          TSS+=gsl_pow_2(y[j*nProbesTotal+i]-meanY);
-          /** reweight the data **/
-          y[j**nProbes+i]=y[j**nProbes+i]/sqrt(gsl_vector_get(weight,i));
-          yNormalized[j**nProbes+i]=yNormalized[j**nProbes+i]/sqrt(gsl_vector_get(weight,i));
-          /** reweight X **/
-          gsl_vector_scale(&xRow.vector, 1./sqrt(gsl_vector_get(weight,i)));			
+          gsl_matrix_free(pairNumCount1);
+          gsl_matrix_free(pairNumCount2);
+          gsl_matrix_free(pairNumCount3);
+          gsl_matrix_free(pairNumCount4);    
         }
-        else
+
+        gsl_matrix_free(seqNumCount);  
+
+        if(*isVerbose)
         {
-          /** Need to get the corresponding row of the design matrix **/
-          if(*method==1)
-          {
-            createDesignMatrixMATRow(seqNumCount, &copyNumberVector.vector, XR, i, seq);
-          }
-          else
-          {
-            createDesignMatrixPairBinnedRow(seqNumCount, 
-              pairNumCount1,
-              pairNumCount2,
-              pairNumCount3,
-              pairNumCount4,
-              &copyNumberVector.vector, XR,i);
-          }	      
-          gsl_blas_ddot(XR, beta, yNormalized+j*nProbesTotal+i);
-        }        	  
-      }  
-
-      /** Compute the residual and total SS **/
-      RSquare[j]=1.0-RSS/TSS;
-      adjRSquare[j]=1.0-(nProbesTotal-1.0)/(nProbesTotal-nVariables-1.0)*RSS/TSS;
-      BIC[j]=-*nProbes*log(RSS/(*nProbes))-nVariables*log(*nProbes);
-    } 
-    
-    /** Need to scale the values for MAT **/
-    if((*MATScaling)==1)
-    {
-      if(*isVerbose)
-      {
-        printf("** Standardizing normalized values **\n");
+          printf("** End of NormalizeProbes procedure **\n");
+        }
       }
-      gsl_permutation_init(indexSorted);
-      for(i=0;i<nProbesTotal;i++)
-        gsl_vector_set(fittedSorted, i, yNormalized[j*nProbesTotal+i]);
-      /** Sort the fitted values **/
-      gsl_sort_vector_index(indexSorted, fittedSorted);
-      /** Compute the standard deviation per bin and scale the values **/
-      for(i=0;i<(nBins-1);i++)
-      {
-        for(k=0;k<nProbesPerBin;k++)
-          gsl_vector_set(yBin,k,y[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]]);
-        gsl_vector_set(sdBins,i,gsl_stats_sd(yBin->data,1,nProbesPerBin));
-
-        for(k=0;k<nProbesPerBin;k++)
-          yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]]=(y[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]]-yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]])/gsl_vector_get(sdBins,i);
-      }
-      /** For the last bin, we actually used a bit more probes **/
-      for(k=0;k<(nProbesTotal-nProbesPerBin*(nBins-1));k++)
-        gsl_vector_set(yBin,k,y[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]]);
-      gsl_vector_set(sdBins,nBins-1,gsl_stats_sd(yBin->data,1,nProbesTotal-nProbesPerBin*(nBins-1)));
-      for(k=0;k<(nProbesTotal-nProbesPerBin*(nBins-1));k++)
-        yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]]=(y[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]]-yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]])/gsl_vector_get(sdBins,nBins-1);
-    } 
-    else /** if no MAT Scaling for MAT or not using MAT **/
-    {
-      for(i=0;i<nProbesTotal;i++)
-      {
-        yNormalized[j*nProbesTotal+i]=y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i];
-      }
-    }  
-
-
-/*****************************************************************************************************/ 
-
-    *betaLength = nVariables;
-    for(k=0; k<nVariables; k++)
-    {
-      outBeta[k+j*nVariables] = beta->data[k];
-    }  
-
-
-/*****************************************************************************************************/
-
-  } 
-
-  if(*method==2)
-  {
-    gsl_matrix_free(pairNumCount1);
-    gsl_matrix_free(pairNumCount2);
-    gsl_matrix_free(pairNumCount3);
-    gsl_matrix_free(pairNumCount4);    
-  }
-  gsl_vector_free(beta);
-  gsl_vector_free(betaTmp);  
-  gsl_matrix_free(X);
-  gsl_matrix_free(H);
-  gsl_vector_free(weight);
-  gsl_vector_free(fittedSorted);
-  if((*MATScaling==1))
-  {
-    gsl_vector_free(sdBins);
-    gsl_vector_free(yBin);
-  }
-  gsl_permutation_free(indexSorted);
-  gsl_vector_free(XR);
-  gsl_matrix_free(seqNumCount);  
-
-  if(*isVerbose)
-  {
-    printf("** End of NormalizeProbes procedure **\n");
-  }
-}
-
+      
 /*\Assume sequence size = 25*/
 void createDesignMatrixMAT(gsl_matrix *seqNumCount, gsl_vector *copyNumber, gsl_matrix *X, char **seq)
 {
 
   int nProbes=X->size1;
-  int i,j,k;
+  int i,j;
 
   for(i=0;i<nProbes;i++)
   {
@@ -403,8 +241,8 @@ void createDesignMatrixMAT(gsl_matrix *seqNumCount, gsl_vector *copyNumber, gsl_
 
 void createDesignMatrixMATRow(gsl_matrix *seqNumCount, gsl_vector *copyNumber, gsl_vector *XRow, int i, char** seq)
 {
-  int nVariables=XRow->size;
-  int j,k;
+  // int nVariables=XRow->size;
+  int j;
   gsl_vector_set_zero(XRow);
   /** Intercept **/
   gsl_vector_set(XRow,0,1);
@@ -502,8 +340,8 @@ void createDesignMatrixPair( gsl_matrix *seqNumCount, gsl_matrix *pairNumMatrix,
 {
 
   int nProbes=X->size1;
-  int nVariables=X->size2;
-  int i,j,k;
+  // int nVariables=X->size2;
+  int i,j;
   int tempInt;
   for(i=0;i<nProbes;i++)
   {
@@ -538,8 +376,8 @@ void createDesignMatrixPair( gsl_matrix *seqNumCount, gsl_matrix *pairNumMatrix,
 
 void createDesignMatrixPairRow(gsl_matrix *seqNumCount, gsl_matrix *pairNumMatrix, gsl_vector *copyNumber, gsl_vector *XRow, int i, char **seq)
 {
-  int nVariables=XRow->size;
-  int j,k;
+  // int nVariables=XRow->size;
+  int j;
   int tempInt;
 
 /** Intercept **/
@@ -576,8 +414,8 @@ void createDesignMatrixPairBinned(gsl_matrix *seqNumCount,
 {
 
   int nProbes=X->size1;
-  int nVariables=X->size2;
-  int i,j,k;
+  // int nVariables=X->size2;
+  int i,j;
 
   for(i=0;i<nProbes;i++)
   {
@@ -613,8 +451,8 @@ void createDesignMatrixPairBinnedRow(gsl_matrix *seqNumCount,
   gsl_vector *XRow, int i)
 {
 
-  int nVariables=XRow->size;
-  int j,k;
+  // int nVariables=XRow->size;
+  int j;
 
 /** Intercept **/
   gsl_vector_set(XRow,0,1);
@@ -670,8 +508,8 @@ void createPairMatrixCount(gsl_matrix *pairNumCount1,
   /**  int nNucleotides=pairNum->size2; **/
   int nProbes=pairNumCount1->size1;
   /**  int nNucleotides=(pairNumCount2->size2)*4; **/
-  int nNucleotides=(pairNumCount2->size2);
-  int i=0,j=0, k=0;
+  // int nNucleotides=(pairNumCount2->size2);
+  int i=0,j=0;
   int tempInt;
   for(i=0;i<nProbes;i++)
   {
@@ -694,7 +532,7 @@ void callEnrichedRegions(double *MATScores, int *nProbes, int *position, double 
 {
 
   double sigma0=0, mu0=0, cutoff=0;
-  double totalSeqsPosition=0;
+  // double totalSeqsPosition=0;
 
   /** Compute the associated pValues **/
   MATNullDistribution(position, nProbes, dMax, MATScores, &sigma0, &mu0, seqNum);
@@ -745,12 +583,12 @@ void getIndices(int *regions, int *nProbes, int *numRegions, int *StartRegion, i
   
   for(i=1;i<=*numRegions;i++)
   {
-    while((regions[count]<i | regions[count]==0) & count<*nProbes)
+    while(((regions[count]<i) | (regions[count]==0)) & (count<*nProbes))
     {
       count++;
     }
     StartRegion[i-1]=count+1;
-    while(regions[count]==i & count<*nProbes)
+    while((regions[count]==i) & (count<*nProbes))
     {
       count++;
     }
@@ -764,7 +602,7 @@ void MAT(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, int *
 {
 
   double sigma0=0, mu0=0, cutoff=0;
-  double totalSeqsPosition=0;
+  // double totalSeqsPosition=0;
 
   MATScore(C, I, nProbes, nArraysC, nArraysI, position, dMax, MATScores, seqNum);
   if(*verbose)
@@ -810,7 +648,7 @@ void MATScore(double *C, double *I, int *nProbes, int *nArraysC, int *nArraysI, 
   gsl_vector *vectorInRegion;
   gsl_vector_view vectorTmp;
   int nProbesRegion=0, nProbesNotTrimmed=0;
-  int i,j,k,p;
+  int i,j,k;
 
   
   pMin=0;
@@ -1012,12 +850,12 @@ double MATcutoffFDR(int *position, int nProbes, double dMerge, double *MATScores
 {
 
   /** Number of regions used to estimate the null distribution **/
-  double cutoff=0.05,step=0.05, estimatedFDR=1;
+  double step=0.05, estimatedFDR=1;
   int nPositive=0,nNegative=0;
 
-  int INITIALSTEP=1;
-  int notInitial=0;
-  double curStep = INITIALSTEP, proposeCutoff=0.1;
+  // int INITIALSTEP=1;
+  // int notInitial=0;
+  double proposeCutoff=0.1;
 
   while((proposeCutoff<50) && (estimatedFDR > FDR))
   {
@@ -1083,4 +921,253 @@ int mergeMATScores(int *position, int nProbes, double dMerge, double *MATScores,
   return(nRegions);
 }
 
+void normArray(char **seq, double *y, double *yNormalized, int *nProbes, int *nArrays, double *copyNumber, int *method, int *robust, double *adjRSquare, double *RSquare, double *BIC, double *outBeta, int *betaLength, int *all,  int *MATScaling,int *isVerbose, 
+               gsl_matrix *pairNumCount1, gsl_matrix *pairNumCount2, gsl_matrix *pairNumCount3, gsl_matrix *pairNumCount4,
+               gsl_matrix *seqNumCount,
+               int nProbesTotal,
+               int nVariables,
+               int nBins,
+               int nProbesPerBin,
+               gsl_vector_view yVector, gsl_vector_view copyNumberVector,
+               int j)
+{
+  double RSS=0,TSS=0,meanY=0;
+  int i=0,k=0;
+  gsl_vector_view xRow;
+  gsl_vector *beta, *betaTmp, *weight, *fittedSorted;
+  gsl_vector *sdBins=NULL, *yBin=NULL, *XR;
+  gsl_permutation *indexSorted;
+  gsl_matrix *X, *H;
 
+  weight=gsl_vector_calloc(*nProbes);
+  fittedSorted=gsl_vector_calloc(nProbesTotal);
+
+  if((*MATScaling)==1)
+  {
+    sdBins=gsl_vector_calloc(nBins);
+    yBin=gsl_vector_calloc(nProbesPerBin+nProbesTotal-nProbesPerBin*(nBins-1)+1);
+  }
+
+  copyNumberVector=gsl_vector_view_array(copyNumber,nProbesTotal);
+  XR=gsl_vector_calloc(nVariables);
+
+  if(*method==1) /** This is the MAT model **/
+  {
+    nVariables=1+3*25+4+1;
+    X=gsl_matrix_calloc(*nProbes,nVariables);
+    createDesignMatrixMAT(seqNumCount, &copyNumberVector.vector, X, seq);
+  }
+  else  /** This is the pair binned model --into 4 bins**/
+  {
+    nVariables=73;
+    X=gsl_matrix_calloc(*nProbes, nVariables);
+    createDesignMatrixPairBinned(seqNumCount, 
+      pairNumCount1,
+      pairNumCount2,
+      pairNumCount3,
+      pairNumCount4,
+      &copyNumberVector.vector, X);
+  }
+
+  /*****************************************************************************************************/
+
+  beta=gsl_vector_alloc(nVariables);
+  betaTmp=gsl_vector_alloc(nVariables);
+  H=gsl_matrix_calloc(nVariables,nVariables);
+  indexSorted=gsl_permutation_calloc(nProbesTotal);
+
+  gsl_blas_dsyrk(CblasLower, CblasTrans, 1.0, X, 0, H);
+  /** Cholesky decomposition of H **/
+  gsl_linalg_cholesky_decomp(H);
+
+  if(*isVerbose)
+  {
+    printf("** Start normalization of array %d **\n",j);
+  }
+
+  /** Select the array **/
+  yVector=gsl_vector_view_array(y+j*nProbesTotal, *nProbes);
+  /** Compute X'y **/
+  gsl_blas_dgemv(CblasTrans, 1.0, X, &yVector.vector, 0.0, betaTmp);
+
+  /** Compute (X'X)^{-1}X'y **/
+  gsl_linalg_cholesky_solve(H, betaTmp, beta);
+
+  meanY=gsl_stats_mean(y+j*nProbesTotal,1,*nProbes);
+
+  for(i=0;i<nProbesTotal;i++)
+  {
+    if(i<(*nProbes))
+    {
+      xRow=gsl_matrix_row(X,i);
+      /** Compute the fitted data X(X'X)^{-1}X'y **/
+      gsl_blas_ddot(&xRow.vector, beta, yNormalized+j*nProbesTotal+i);
+      RSS+=gsl_pow_2(y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i]);
+      TSS+=gsl_pow_2(y[j*nProbesTotal+i]-meanY);
+    }
+    else
+    {
+      /** Need to get the corresponding row of the design matrix **/
+      if(*method==1)
+      {
+        createDesignMatrixMATRow(seqNumCount, &copyNumberVector.vector, XR, i, seq);
+      }
+      else
+      {
+        createDesignMatrixPairBinnedRow(seqNumCount, 
+          pairNumCount1,
+          pairNumCount2,
+          pairNumCount3,
+          pairNumCount4,
+          &copyNumberVector.vector, XR,i);
+      }
+      gsl_blas_ddot(XR, beta, yNormalized+j*nProbesTotal+i); 
+    }
+  }
+
+  /** Compute the residual and total SS **/
+  // printf("j=%d\n",j);
+  // printf("RSS=%lf\n",RSS);
+  // printf("nProbesTotal=%d\n",nProbesTotal);
+  // printf("nVariables=%d\n",nVariables);  
+  // printf("RSquare[%d]=%lf\n",j,RSquare[j]);
+  // printf("adjRSquare[%d]=%lf\n",j,adjRSquare[j]);
+  // printf("BIC[%d]=%lf\n",j,BIC[j]);
+  
+  RSquare[j]=1.0-RSS/TSS;
+  adjRSquare[j]=1.0-(nProbesTotal-1.0)/(nProbesTotal-nVariables-1.0)*RSS/TSS;
+  BIC[j]=-*nProbes*log(RSS/(*nProbes))-nVariables*log(*nProbes);
+
+  // printf("RSquare[%d]=%lf\n",j,RSquare[j]);
+  // printf("adjRSquare[%d]=%lf\n",j,adjRSquare[j]);
+  // printf("BIC[%d]=%lf\n",j,BIC[j]);
+
+  /* If we specify to use the robust estimate */
+  if(*robust==1)
+  {
+    if(*isVerbose){
+      printf("** Start robust normalization of array %d **\n",j);
+      
+    }
+
+    for(i=0;i<*nProbes;i++)
+    {
+      /** Compute the weights (with 4 degrees of freedom) **/
+      gsl_vector_set(weight,i,(4.0+1.0)/(4.0+*nProbes/RSS*gsl_pow_2(y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i])));
+      /** Multiply each row of X by the weight **/
+      xRow=gsl_matrix_row(X,i);
+      gsl_vector_scale(&xRow.vector, sqrt(gsl_vector_get(weight,i)));
+      /** Multiply each observation by its weight **/
+      y[j*nProbesTotal+i]=sqrt(gsl_vector_get(weight,i))*y[j*nProbesTotal+i];
+    }
+
+    gsl_blas_dsyrk(CblasLower, CblasTrans, 1.0, X, 0, H);
+    /** Compute X'y **/
+    gsl_blas_dgemv(CblasTrans, 1.0, X, &yVector.vector, 0.0, betaTmp);
+    /** Cholesky decomposition of H **/
+    gsl_linalg_cholesky_decomp(H);
+    /** Compute (X'X)^{-1}X'y **/	
+    gsl_linalg_cholesky_solve(H, betaTmp, beta);
+
+    RSS=0;TSS=0;
+    meanY=gsl_stats_mean(y+j*nProbesTotal,1,*nProbes);
+    for(i=0;i<nProbesTotal;i++)
+    {
+      if(i<(*nProbes))
+      {
+        xRow=gsl_matrix_row(X,i);
+        /** Compute the fitted data X(X'X)^{-1}X'y **/
+        gsl_blas_ddot(&xRow.vector, beta, yNormalized+j*nProbesTotal+i);
+        RSS+=gsl_pow_2(y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i]);
+        TSS+=gsl_pow_2(y[j*nProbesTotal+i]-meanY);
+        /** reweight the data **/
+        y[j**nProbes+i]=y[j**nProbes+i]/sqrt(gsl_vector_get(weight,i));
+        yNormalized[j**nProbes+i]=yNormalized[j**nProbes+i]/sqrt(gsl_vector_get(weight,i));
+        /** reweight X **/
+        gsl_vector_scale(&xRow.vector, 1./sqrt(gsl_vector_get(weight,i)));			
+      }
+      else
+      {
+        /** Need to get the corresponding row of the design matrix **/
+        if(*method==1)
+        {
+          createDesignMatrixMATRow(seqNumCount, &copyNumberVector.vector, XR, i, seq);
+        }
+        else
+        {
+          createDesignMatrixPairBinnedRow(seqNumCount, 
+            pairNumCount1,
+            pairNumCount2,
+            pairNumCount3,
+            pairNumCount4,
+            &copyNumberVector.vector, XR,i);
+        }	      
+        gsl_blas_ddot(XR, beta, yNormalized+j*nProbesTotal+i);
+      }
+    }
+
+    /** Compute the residual and total SS **/
+    RSquare[j]=1.0-RSS/TSS;
+    adjRSquare[j]=1.0-(nProbesTotal-1.0)/(nProbesTotal-nVariables-1.0)*RSS/TSS;
+    BIC[j]=-*nProbes*log(RSS/(*nProbes))-nVariables*log(*nProbes);
+  } 
+
+  /** Need to scale the values for MAT **/
+  if((*MATScaling)==1)
+  {
+    if(*isVerbose)
+    {
+      printf("** Start scaling of array %d **\n",j);
+    }
+    gsl_permutation_init(indexSorted);
+    for(i=0;i<nProbesTotal;i++)
+      gsl_vector_set(fittedSorted, i, yNormalized[j*nProbesTotal+i]);
+        /** Sort the fitted values **/
+    gsl_sort_vector_index(indexSorted, fittedSorted);
+    /** Compute the standard deviation per bin and scale the values **/
+    for(i=0;i<(nBins-1);i++)
+    {
+      for(k=0;k<nProbesPerBin;k++)
+        gsl_vector_set(yBin,k,y[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]]);
+      gsl_vector_set(sdBins,i,gsl_stats_sd(yBin->data,1,nProbesPerBin));
+
+      for(k=0;k<nProbesPerBin;k++)
+        yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]]=(y[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]]-yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*i+k]])/gsl_vector_get(sdBins,i);
+    }
+        /** For the last bin, we actually used a bit more probes **/
+    for(k=0;k<(nProbesTotal-nProbesPerBin*(nBins-1));k++)
+      gsl_vector_set(yBin,k,y[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]]);
+    gsl_vector_set(sdBins,nBins-1,gsl_stats_sd(yBin->data,1,nProbesTotal-nProbesPerBin*(nBins-1)));
+    for(k=0;k<(nProbesTotal-nProbesPerBin*(nBins-1));k++)
+      yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]]=(y[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]]-yNormalized[j*nProbesTotal+indexSorted->data[nProbesPerBin*(nBins-1)+k]])/gsl_vector_get(sdBins,nBins-1);
+  } 
+  else /** if no MAT Scaling for MAT or not using MAT **/
+  {
+    for(i=0;i<nProbesTotal;i++)
+    {
+      yNormalized[j*nProbesTotal+i]=y[j*nProbesTotal+i]-yNormalized[j*nProbesTotal+i];
+    }
+  }
+  /*****************************************************************************************************/ 
+
+  *betaLength = nVariables;
+  for(k=0; k<nVariables; k++)
+  {
+    outBeta[k+j*nVariables] = beta->data[k];
+  }
+  /*****************************************************************************************************/
+  
+  gsl_vector_free(beta);
+  gsl_vector_free(betaTmp);
+  gsl_matrix_free(X);
+  gsl_matrix_free(H);
+  gsl_vector_free(weight);
+  gsl_vector_free(fittedSorted);
+  if((*MATScaling==1))
+  {
+    gsl_vector_free(sdBins);
+    gsl_vector_free(yBin);
+  }
+  gsl_permutation_free(indexSorted);
+  gsl_vector_free(XR);
+}

@@ -101,3 +101,22 @@ gdPlot(list("score" = MatScore, "Gene +" = genesplus, Position = genomeAxis, "Ge
 
 
 
+### My test
+
+# library(Biobase)
+library(rMAT)
+
+pwd<-"/Users/gottarr/Downloads/SampleData/"
+
+bpmapFile<-paste(pwd,"P1_CHIP_A.Anti-Sense.hs.NCBIv35.NR.bpmap",sep="")
+arrayFile<-paste(pwd,c("MCF_ER_A1.CEL","MCF_ER_A3.CEL","MCF_ER_A4.CEL"),sep="")
+
+# Show the all the different sequences
+ReadBPMAPAllSeqHeader(bpmapFile)
+
+# create a tiling Set from the corresponding data
+# This will only grep the sequences with Sc
+test<-BPMAPCelParser(bpmapFile, arrayFile, genomeName=NULL, verbose=TRUE, groupName="", seqName="chr21")
+
+# Perform the MAT normalization
+system.time(ScSetNorm<-NormalizeProbes(test, method="MAT",robust=FALSE, all=FALSE, standard=FALSE, verbose=TRUE))
