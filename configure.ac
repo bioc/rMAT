@@ -13,27 +13,24 @@ if test -n "${R_HOME}"; then
   CFLAGS=`${R_HOME}/bin/R CMD config CFLAGS`
 fi
 
-PKG_CHECK_MODULES(GSL, [gsl >= 1.6], [HAVEGSL="yes"], [HAVEGSL="no"])
-if test "$HAVEGSL" = "yes"; then
-  BLAS_LIBS=$GSL_LIBS
-fi
-
-
 ## BLAS.
 AC_ARG_WITH([blas],
 [AC_HELP_STRING([--with-blas],
                 [use system gsl BLAS library (if available)])],
-[BLAS_LIBS="-lgsl $with_blas -lm"],
-[BLAS_LIBS=$BLAS_LIBS])
-
+[BLAS_LIBS=$with_blas],
+[BLAS_LIBS="-lgslcblas"])
 
 # I did not find any BLAS libraries, (R is probably not well configured)
 # if test "${BLAS_LIBS}" = ""; then
 #   BLAS_LIBS="-lgslcblas"
 # fi
 
-AM_PATH_GSL(1.6,[LIBS="${LIBS} ${BLAS_LIBS}"],[AC_MSG_ERROR([Cannot find Gnu Scientific Library >=1.6])])
-
+PKG_CHECK_MODULES(GSL, [gsl >= 1.6], [HAVEGSL="yes"], [HAVEGSL="no"])
+if test "$HAVEGSL" = "yes"; then
+  LIBS=$GSL_LIBS
+else 
+  AM_PATH_GSL(1.6,[LIBS="${LIBS} -lgsl ${BLAS_LIBS} -lm"],[AC_MSG_ERROR([Cannot find Gnu Scientific Library >=1.6])])
+fi
 
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT()
