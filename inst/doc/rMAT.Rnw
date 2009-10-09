@@ -160,7 +160,7 @@ library(rtracklayer)
 \section{Plotting a Gene with rtracklayer}
 
 
-<<rtracklayer annotation>>=
+<<rtracklayer annotation,eval=false>>=>>=
 
 genome(Enrich)<-"sacCer2"
 names(Enrich)<-"chrI"
