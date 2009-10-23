@@ -12,7 +12,7 @@
 \newcommand{\scscst}{\scriptscriptstyle}
 \newcommand{\scst}{\scriptstyle}
 
-\author{Charles Cheunga\footnote{cykc@interchange.ubc.ca} and Raphael
+\author{Charles Cheung\footnote{cykc@interchange.ubc.ca} and Raphael
   Gottardo\footnote{raphael.gottardo@ircm.qc.ca} and Arnaud Droit\footnote{arnaud.droit@ircm.qc.ca}}
 
 \begin{document}
@@ -38,13 +38,12 @@ Under the Artistic license 2.0, you are free to use and redistribute this softwa
 \end{itemize}
 
 \part{Introduction}
-	In our guide, we include examples of code that we hope will help you when using the rMAT package. The examples are kept at the basic level for ease of understanding. Some of the options in the functions have been set by default. To learn more about the exact parameters and usage of each function, you may type \verb@help(FUNCTION_NAME)@ of the function of interest in R after the rMAT package is loaded.
+In our guide, we include examples of code that we hope will help you when using the rMAT package. The examples are kept at the basic level for ease of understanding. Some of the options in the functions have been set by default. To learn more about the exact parameters and usage of each function, you may type \verb@help(FUNCTION_NAME)@ of the function of interest in R after the rMAT package is loaded.
 \newline
 
-The probe sequence information of an Affymetrix tiling array is stored in the .BPMAP file, while the corresponding expression values (intensity signals) of each experiment is stored separately in each .CEL file. The BPMAP file contains different sequences that describe different contents in the array. For instance, the first sequence may contain probes from chromosome 1 while the second sequence may contain probes from chromosome 2. Each probe would include information such as its Perfect Match base pair sequence (ie. AGCTTCGAAGCTTCGAAGCTTCGAG), location on chromosome, X and Y coordinates, etc. The CEL file does not know anything about the design of the array; it is just a file with  columns such as X coordinate, Y coordinate, expression value, and other auxiliary columns. For each array experiment (ie. mock, treated with reagent X, treated with reagent Y), we have one CEL file. These two type of files are stored in a binary format and require a parser (reader) to read its content meaningfully. 
+The probe sequence information of an Affymetrix tiling array is stored in the .BPMAP file, while the corresponding expression values (intensity signals) of each experiment is stored separately in each .CEL file. The BPMAP file contains different sequences that describe different contents in the array. For instance, the first sequence may contain probes from chromosome 1 while the second sequence may contain probes from chromosome 2. Each probe would include information such as its Perfect Match base pair sequence (ie. AGCTTCGAAGCTTCGAAGCTTCGAG), location on chromosome, X and Y coordinates, etc. The CEL file does not carry any information about the design of the array; but simply X and Y coordinates and expression values, as well as other auxiliary columns. For each array experiment (ie. mock, treated with reagent X, treated with reagent Y), we have one CEL file. BPMAP and CEL files are stored in binary format and require a parser (reader) to read its content meaningfully. We make use of the \texttt{affxparser} software for this purpose, although we provide convenient wrappers for most of the necessary functions.
 \newline
-	The common goal in analyzing this type of data is to find activities (DNA-protein interaction, transcription, etc) in specific chromosomal regions. This package focus on detecting DNA-protein interactions from ChIP-chip experiments. Though, many of the functions are more general than that. The steps in analyzing the tiling array data are as follows.
-
+The common goal in analyzing ChIP-chip data, and more generally tiling array data, is to find activities (DNA-protein interaction, transcription, etc) in specific chromosomal regions. This package focus on detecting DNA-protein interactions from ChIP-chip experiments. Though, many of the functions are more general than that, e.g. parsing/normalization. Major analysis steps are described below.
 
 \part{Loading the rMAT Package}
 To load the rMAT package in R, we type 
@@ -55,30 +54,27 @@ library(rMAT)
 @
 
 \part{Loading in the data}
-The next step in a typical analysis is to load in data from Affymetrix CEL files. 
+The next step in a typical analysis is to load-in/read data from Affymetrix CEL files. 
 The data used in this example are available in this package in inst/doc folder. \newline 
-In this documentation, the path for the data are :  /rMAT/inst/doc folder. 
+In this documentation, the path for the data is the  /rMAT/inst/doc folder. 
 
 \part{Reading BPMAP and CEL files}
 
 \subsection*{Reading the design of tiling array}
 
-	The first step in analyzing tiling array data is to understand the content of the data. To understand the design, we would explore the header section of the BPMAP file using the function ReadBPMAPAllSeqHeader. ReadBPMAPAllSequence takes in the filename of the BPMAP file as an argument. The filename is formatted as a string literal (characters) in unix path format and stored in the variable BPMAPFile, which is then used by \textbf{ReadBPMAPAllSeqHeader} to specify which BPMAP file to read. 
+In order to read-in appropriate data values from the CEL/BPMAP files, we first need to understand their content. To understand the design, we would explore the header section of the BPMAP file using the function ReadBPMAPAllSeqHeader. ReadBPMAPAllSequence takes in the filename of the BPMAP file as an argument. The filename is formatted as a string literal (characters) in unix path format and stored in the variable BPMAPFile, which is then used by \textbf{ReadBPMAPAllSeqHeader} to specify which BPMAP file to read. 
 
 <<Reading the BPMAP File Header>>=
-
-
 pwd<-"" #INPUT FILES- BPMAP, ARRAYS, etc.
 path<- system.file("doc/Sc03b_MR_v04_10000.bpmap",package="rMAT")
 
 bpmapFile = paste(pwd, path, sep="")
 seqHeader <-ReadBPMAPAllSeqHeader(bpmapFile)  #save the list of output contents to seqHeader
-#print(seqHeader)
+print(seqHeader) # show its content
 @
 
 \subsection*{Specifying the filenames}
-From the above header content, the information we want to obtain is the direct mapping from sequence number to chromosome number.
-Sequence number is stored in the seqNum column while chromosome number can be read from the Name column, which describes the content of the \verb@sequence@.
+From the above header content, the information we want to obtain is the direct mapping from sequence number to chromosome number. Sequence numbers are stored in the seqNum column while chromosome numbers can be read from the Name column, which describes the content of the \verb@sequence@.
 \newline
 	We would like to read the BPMAP and CEL files and merge them by X and Y coordinate so information such as probe sequence and location along the chromosome would pair up with the corresponding expression value. 
 \newline
@@ -86,20 +82,19 @@ Sequence number is stored in the seqNum column while chromosome number can be re
  each separate by \verb@","@
 . 
 <<arrayFile>>=
-
 pathCEL<- system.file("doc/Swr1WTIP_Short.CEL",package="rMAT")
 arrayFile<-paste(pwd,c(pathCEL),sep="")
 @
 
 \subsection*{Calling BPMAPCelParser}
-We are now ready to call the BPMAPCelParser. 
+We are now ready to call and use the BPMAPCelParser. 
 \\
  
 <<BPMAPCelParser>>=
 ScSet<-BPMAPCelParser(bpmapFile, arrayFile, verbose=FALSE,groupName="Sc")     
 @
 
-groupeName corresponding to the genome name used. In this example, we specefied saccharomyces cerevisiae genome (Sc)
+the `groupeName' argument corresponding to the genome name used. In this example, we specified saccharomyces cerevisiae genome (Sc). If no groupName is specified, all sequences will be read, including Affymetrix controls, etc. You probably don't want that.
 
 
 This function returns an object of class tilingSet containing all necessary information: probe sequences, genomic positions, chromosomes as well as the probe intensities. 
@@ -111,10 +106,10 @@ Let's explore the (partial) content of ScSet.
 summary(ScSet)
 @
 
-We are now ready to normalize the raw data. Normalization is a procedure to transform raw data into the so-called normalized expression data so expression values from different tiling arrays can be compared. 
+We are now ready to normalize the raw data. Normalization is a procedure to transform raw data into the so-called normalized expression data so expression values from different tiling arrays become more comparable.
 
 \part{Normalization}
-The NormalizeProbes function allows users to normalize expression values of different experiments with one command, as long as all those experiments use the same BPMAP tiling design file. We can load these raw expression values in batch using \verb@cbind()@. NormalizeProbes also requires users to specify the sequence vector. In this case, it is a vector of characters containing the 25 base pair sequence of each probe.  (Right now, Normalization works for reading 25mer only.)
+The `NormalizeProbes' function allows users to normalize expression values of different experiments with one command, as long as all those experiments use the same BPMAP tiling design file. We can load these raw expression values in batch using \verb@cbind()@. NormalizeProbes also requires users to specify the sequence vector. In this case, it is a vector of characters containing the 25 base pair sequence of each probe.  (Right now, Normalization works for reading 25mer only.)
 
 For a complete list of parameters for NormalizeProbes, please refer to 
 \newline
@@ -125,7 +120,7 @@ For a complete list of parameters for NormalizeProbes, please refer to
 ScSetNorm<-NormalizeProbes(ScSet,method="MAT",robust=FALSE,all=FALSE,standard=TRUE,verbose=FALSE)  
 @
 
-The user can choose from "MAT", or "PairBinned" normalization method. byeThe Pair option also takes into account of the interaction between adjacent pairs along the probe as covariates for linear regression.
+The user can choose from `MAT', or `PairBinned' normalization method. The `PairBinned' option takes into account interaction between adjacent pairs along the probe as covariates for the linear regression. Both model require the same number of parameters. For more details on the other options, please refer to the man pages.
 
 The output in this example is saved in \verb@ScSetNorm@. 
 
@@ -137,10 +132,11 @@ summary(ScSetNorm)
 
 
 \part{Finding the Enriched Regions}
-After normalization, we are ready to find enriched regions.  We can adjust the threshold for detection of enriched regions. A higher threshold provides a stricter criterion and thus less regions are expected. A higher threshold value also means that the enriched regions would be shorter on average. Please note that the threshold for MATScore with control and without control can be very different because with control the expression values from the Immunoprecipated data is subtracted from the that of the Control. The generated list of MAT enriched regions will be written to a file defined by parameter output if it is specified. For more details about the overall procedure please refer to the paper cited above.
+After normalization, we are ready to compute the MatScores and identify enriched regions. There are various ways to call enriched regions, based on p-values, FDR threshold and MATscore thresholds. On the command below, we use the a MATScore threshold of 1.
 
-For a comprehensive list of parameters you can adjust in MATScore, please refer to \verb@help(MATScore)@.
-Another note is that if FDR is used, threshold should be set in the range between 0 and 1.
+For a comprehensive list of parameters you can adjust in callEnrichedRegions, please refer to \verb@help(MATScore)@. Another note is that if FDR is used, threshold should be set in the range between 0 and 1.
+
+The `computeMATScore' function is first used to compute the scores and return a `RangedData' object, which can then use exported to a `wig' file and/or uploaded to a genome browser using \texttt{rtracklayer}.
 
 <<COMPUTING rMAT SCORES>>=
 RD<-computeMATScore(ScSetNorm,cName=NULL, dMax=600, verbose=TRUE) 
@@ -149,10 +145,10 @@ Enrich<-callEnrichedRegions(RD,dMax=600, dMerge=300, nProbesMin=8, method="score
 
 
 \section{Creating an annotation graphic}
-rMAT results can benefit from integreated visualisation of the genomic information. We have decided to use the rtrackalayer  or GenomeGraphs package \href{http://www.bioconductor.org/packages/2.2/bioc/html/GenomeGraphs.html}{GenomeGraphs package}.This last package uses the biomaRt package to deliver queries to Ensembl e.g. gene/transcript structures to viewports of the grid package, resulting in genomic information plotted together with your data. 
+rMAT results can benefit from integrated visualisation of the genomic information. We have decided to use the \texttt{rtrackalayer}  or \texttt{GenomeGraphs} package. This last package uses the \texttt{biomaRt} package to deliver queries to Ensembl e.g. gene/transcript structures to viewports of the grid package, resulting in genomic information plotted together with your data. 
 
-To load the GenomeGraphs package in R, we type 
-<<Reading library>>=
+To load the GenomeGraphs and rtracklayer packages in R, we type 
+<<Reading library,eval=false>>=
 library(GenomeGraphs)
 library(rtracklayer)
 @
@@ -177,11 +173,10 @@ view<- browserView(session,range(subEnrich) * -2)
 @
 
 
-\section{Plotting a Gene wiht GenomeGraphs}
-If one wants to plot annotation information from Ensembl then you need to connect to Ensembl BioMArt using the useMart function of the biomaRt package.
+\section{Plotting a Gene with GenomeGraphs}
+If one wants to plot annotation information from Ensembl then you need to connect to Ensembl Biomart using the useMart function of the \texttt{biomaRt} package.
 
-<<Ensembl BioMart>>=
-
+<<Ensembl BioMart,eval=false>>=
 mart<-useMart("ensembl",dataset="scerevisiae_gene_ensembl")
 @
 
@@ -189,19 +184,19 @@ mart<-useMart("ensembl",dataset="scerevisiae_gene_ensembl")
 If you are interested in plotting a whole gene region, you should create a GeneRegion object.
 In the example below we will retrieve the genes of the chromsome (I) between 1 and 200000. We added a genomic axis as well to give us the base positions.
 
-<<Genome Axis>>=
+<<Genome Axis,eval=false>>=
 genomeAxis<-makeGenomeAxis(add53 = TRUE, add35=TRUE)
 minbase<-1
 maxbase<-50000
 @
 
-<<Plotting Gene>>=
+<<Plotting Gene,eval=false>>=
 genesplus<-makeGeneRegion(start = minbase, end = maxbase, strand = "+", chromosome = "I", biomart = mart) 
 genesmin<-makeGeneRegion(start = minbase, end = maxbase, strand = "-", chromosome = "I", biomart = mart)
 @
 We create a Generic Array for chromosome I only 
 
-<<MatScore for chromosome I>>=
+<<MatScore for chromosome I,eval=false>>=
 RD1<-RD[space(RD)=="chr1",]
 Enrich1<-Enrich[space(Enrich)=="chr1",]
 MatScore<-makeGenericArray(intensity=as.matrix(score(RD1)),  probeStart=start(RD1), dp=DisplayPars(size=1, color="black", type="l"))
@@ -219,7 +214,6 @@ To build the \texttt{rMAT} package from source, make sure that the following is 
 \begin{itemize}
 \item GNU Scientific Library (GSL)
 \item Basic Linear Algebra Subprograms (BLAS)
-\item a C compiler
 \end{itemize}
 
 GSL can be downloaded at \url{http://www.gnu.org/software/gsl/}.  In addition, the package uses BLAS to perform basic vector and matrix operations.  Please go to \url{http://www.netlib.org/blas/faq.html#5} for a list of optimized BLAS libraries for a variety of computer architectures.  For instance, Mac users may use the built-in vecLib framework, while users of Intel machines may use the Math Kernel Library (MKL).  A C compiler is needed to build the package as the core of the \texttt{rMAT} function is coded in C.
@@ -236,6 +230,6 @@ On a 64-bit Intel machine which has MKL as the optimized BLAS library, the comma
 \texttt{R CMD INSTALL rMAT\_x.y.z.tar.gz -{}-configure-args="-{}-with-blas='-L/usr/local/mkl/lib/em64t/ -lmkl -lguide -lpthread'"}\\[6pt]
 where \texttt{/usr/local/mkl/lib/em64t/} is the path to MKL. 
 
-If you prefer to install a prebuilt binary, you need GSL for successful installation.
+If you prefer to install a prebuilt binary, you need GSL for successful installation. Finally, as of version 2.1.0, rMAT makes use of the Grand Central Dispatch to normalize arrays in parallel. The Grand Central Dispatch technology is available on Apple Snow Leopard operating system.
 
 \end{document}
