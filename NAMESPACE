@@ -7,7 +7,7 @@ importClassesFrom(IRanges, RangedData)
 ## export anything w/out a dot in front. 
 exportPattern("^[^\\.]")
 exportClasses(tilingSet, MAT)
-exportMethods(show,summary)
+exportMethods(show,summary,combine)
 
 
 importClassesFrom(Biobase,eSet,VersionedBiobase,Versioned, AnnotatedDataFrame,AssayData,ExpressionSet, MIAME, Versions)

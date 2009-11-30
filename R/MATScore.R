@@ -146,11 +146,17 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     {
       start[i]<-startMat[obj$Start[i]]
       end[i]<-startMat[obj$End[i]]
-      score[i]<-mean(scoreMat[obj$Start[i]:obj$End[i]])
+      score[i]<-max(scoreMat[obj$Start[i]:obj$End[i]])
       chr[i]<-chrAll[obj$Start[i]]
     }
-    ind<-length(obj$End-obj$Start)>nProbesMin
-    ranges<-IRanges(start=as.integer(start[ind]),end=as.integer(end[ind]))
+    ind<-obj$End-obj$Start>nProbesMin
+
+    if(verbose)
+    {
+      cat("** ", sum(!ind), " enriched regions have less than ", nProbesMin, " probes and are filtered out**\n")
+    }
+    
+    ranges<-IRanges(start=start[ind],end=end[ind])
     chr<-chr[ind]
     score<-score[ind]
   }
