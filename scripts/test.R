@@ -1,20 +1,21 @@
 # library(Biobase)
 library(rMAT)
 
-pwd<-"/Volumes/GotGrid/Data/chip-chip/ER/"
+pwd<-"./"
 
 ####################################################
 #See vignette on how to get data files from Web site.
 ####################################################
 
-setwd(" /Volumes/GotGrid/Data/chip-chip/ER/")  # Set wroking directory where you are your CEL and bpmap files
+setwd("/Users/gottarr/rglab/Papers/rMAT-paper2/")  # Set wroking directory where you are your CEL and bpmap files
 
 bpmapFile<-paste(pwd,"P1_CHIP_A.Anti-Sense.hs.NCBIv35.NR.bpmap",sep="")
 arrayFile<-paste(pwd,c("MCF_ER_A1.CEL","MCF_ER_A3.CEL","MCF_ER_A4.CEL","MCF_INP_A1.CEL","MCF_INP_A3.CEL","MCF_INP_A4.CEL"),sep="")
-
+arrayFile<-paste(pwd,c("MCF_ER_A1.CEL"),sep="")
+arrayFile<-paste(pwd,c("MCF_ER_A1.CEL","MCF_ER_A3.CEL"),sep="")
 
 # Show the all the different sequences
-ReadBPMAPAllSeqHeader(bpmapFile)
+# ReadBPMAPAllSeqHeader(bpmapFile)
 
 # create a tiling Set from the corresponding data
 # This will only grep the sequences with Sc
@@ -27,7 +28,28 @@ show(ScSet)
 summary(ScSet)
 
 # Perform the MAT normalization
+ScSetNorm<-NormalizeProbes(ScSet, method="MAT",robust=TRUE, all=FALSE, standard=TRUE, verbose=TRUE)
+
+yN<-exprs(ScSetNorm)
+y<-exprs(ScSet)
+
+diag(cor(yN,y))
+
 ScSetNorm<-NormalizeProbes(ScSet, method="MAT",robust=FALSE, all=FALSE, standard=TRUE, verbose=TRUE)
+
+yN<-exprs(ScSetNorm)
+y<-exprs(ScSet)
+
+diag(cor(yN,y))
+
+ScSetNorm<-NormalizeProbes(ScSet, method="PairBinned",robust=TRUE, all=FALSE, standard=TRUE, verbose=TRUE)
+
+yN<-exprs(ScSetNorm)
+y<-exprs(ScSet)
+
+diag(cor(yN,y))
+
+plot(y[,1],pch=".")
 
 # show the object
 show(ScSetNorm)
@@ -113,17 +135,46 @@ gdPlot(list("score" = MatScore,  Position = genomeAxis), minBase = minbase, maxB
 # library(Biobase)
 library(rMAT)
 
-pwd<-"/Users/gottarr/Downloads/SampleData/"
-
-bpmapFile<-paste(pwd,"P1_CHIP_A.Anti-Sense.hs.NCBIv35.NR.bpmap",sep="")
-arrayFile<-paste(pwd,c("MCF_ER_A1.CEL","MCF_ER_A3.CEL","MCF_ER_A4.CEL"),sep="")
+bpmapFile<-"P1_CHIP_A.Anti-Sense.hs.NCBIv35.NR.bpmap"
+arrayFile<-c("MCF_ER_A1.CEL","MCF_ER_A3.CEL","MCF_ER_A4.CEL","MCF_INP_A1.CEL","MCF_INP_A3.CEL","MCF_INP_A4.CEL")
 
 # Show the all the different sequences
 ReadBPMAPAllSeqHeader(bpmapFile)
 
 # create a tiling Set from the corresponding data
 # This will only grep the sequences with Sc
-test<-BPMAPCelParser(bpmapFile, arrayFile, genomeName=NULL, verbose=TRUE, groupName="", seqName="chr21")
+ERset<-BPMAPCelParser(bpmapFile, arrayFile, seqName="chr21")
 
 # Perform the MAT normalization
-system.time(ScSetNorm<-NormalizeProbes(test, method="MAT",robust=FALSE, all=FALSE, standard=FALSE, verbose=TRUE))
+# ERsetNorm1<-NormalizeProbes(ERset, method="MAT",robust=TRUE)
+ERsetNorm<-NormalizeProbes(ERset, method="PairBinned",robust=TRUE)
+
+# Compute MAT scores
+ERscore<-computeMATScore(ERsetNorm,cName="INP") 
+ERscore
+
+# Export a wig file
+export(ERscore,con="ERscore.wig")
+
+
+
+library(rtracklayer)
+
+genome(Enrich)<-"sacCer2"
+names(Enrich)<-"chrI"
+
+#Viewing the targets
+session<- browserSession("UCSC")
+track(session,"target") <- Enrich
+
+#Get the first feature
+subEnrich<-Enrich[2,]
+
+#View with GenomeBrowser
+view<- browserView(session,range(subEnrich) * -2)
+
+
+
+library(GenomeGraphs)
+mart<-useMart("ensembl", dataset = "scerevisiae_gene_ensembl")
+genomeAxis<-makeGenomeAxis(add53 = TRUE,add35 = TRUE)

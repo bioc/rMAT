@@ -7,23 +7,10 @@ function(object)
 }
 )
 
-setMethod("show", "MAT",
-function(object)
-{
-    cat("Object of class 'MAT'","\n")
-    cat("This object contains an ExpressionSet and has the following additional slots: \n")
-    cat("genomeName, featureSequence, featurePosition, featureChromosome, featureCopyNumber, score, pValue, regIndex, method, threshold \n")
-}
-)
-
-
 setMethod("summary", signature("tilingSet"),
     function(object) {
       cat("   Genome interrogated: ",sort(object@genomeName)," \n")
-      tmp<-unique(object@featureChromosome)
-      tmp<-unlist((strsplit(tmp,"chr")))
-      chr<-tmp[grep(".",tmp)]
-      chr<-c(sort(as.integer(chr[grep("[1-9]",chr)])),sort(chr[grep("[a-zA-z]",chr)]))
+      chr<-levels(object@featureChromosome)
       cat("   Chromosome(s) interrogated: ")
       cat(chr,sep=", ")
       cat(" \n")
@@ -35,26 +22,6 @@ setMethod("summary", signature("tilingSet"),
     }
 )
 
-setMethod("summary", signature("MAT"),
-    function(object) {
-      cat("   Genome interrogated: ", sort(object@genomeName)," \n\n")
-      tmp<-unique(object@featureChromosome)
-      tmp<-unlist((strsplit(tmp,"chr")))
-      chr<-tmp[grep(".",tmp)]
-      chr<-c(sort(as.integer(chr[grep("[1-9]",chr)])),sort(chr[grep("[a-zA-z]",chr)]))
-      cat("   Chromosome(s) interrogated: ")
-      cat(chr,sep=", ")
-      cat(" \n")
-      cat("   Regions selected by", object@method, "with a threshold of ", object@threshold, " \n")      
-      cat("     - Total number of regions detected: ",sum(object@regIndex>0)," \n")
-      cat("     - Number of regions detected by chromosomes: \n")
-      for(i in 1:length(chr))
-      {
-        cat(chr[i],": ", sum(object@regIndex[object@featureChromosome==paste("chr",chr[i],sep="")]>0), "  ",sep="")
-      }
-      cat("\n")
-    }
-)
 
 ## Bind several tiling sets together
 
