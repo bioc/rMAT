@@ -1,6 +1,7 @@
 \name{tilingSet}
 \alias{tilingSet}
 \alias{tilingSet-class}
+\alias{rbind,tilingSet-method}
 \alias{\%in\%,ANY,tilingSet-method}
 
 
@@ -11,6 +12,10 @@ This object contains an ExpressionSet and has the following additional slots:
 genomeName, featureSequence, featurePosition, featureChromosome, featureCopyNumber
 }
 
+\details{
+Tiling set objects can also be combined using the \code{rbind} methods. This is particularly useful when several arrays span a genome/chromosome.
+}
+
 \usage{
  newSet<-new('tilingSet', featureChromosome,featurePosition, featureCopyNumber, exprs, genomeName, featureSequence, experimentData)
 }
@@ -18,7 +23,7 @@ genomeName, featureSequence, featurePosition, featureChromosome, featureCopyNumb
 \arguments{
 \item{tilingSet}{This object contains an ExpressionSet}
 \item{genomeName}{ String containing the genome name used (vector).}
-\item{featureChromosome}{ String containing the name of chromosome used (vector).}
+\item{featureChromosome}{ Factor containing the name of chromosome used (vector).}
 \item{featurePosition}{ String containing the Position of the sequences (vector).}
 \item{featureCopyNumber}{ String containing the copy number of sequence (vector).}
 \item{exprs}{ String containing the expresion data of enriched region (matrix with n column.}
@@ -37,13 +42,13 @@ W. E. Johnson, Li, W., Meyer, C. A., Gottardo, R., Carroll, J. S., Brown, M., an
 }
 
 \seealso{
-\code{\link{MAT}}
+\code{\link{BPMAPCelParser}}, \code{\link{NormalizeProbes}}
 }
 
 
 \examples{
 
-featureChromosome=c("chr1","chr1","chr1","chr1")
+featureChromosome=factor(c("chr1","chr1","chr1","chr1"))
 featurePosition=c(as.integer(47193),as.integer(47197),as.integer(47201),as.integer(47205))
 featureCopyNumber=c(as.integer(1),as.integer(1),as.integer(1),as.integer(1))
 a=5.379897

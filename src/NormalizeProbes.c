@@ -29,8 +29,6 @@
     #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
       #include <dispatch/dispatch.h>
       #define HAVE_DISPATCH 1
-    #else
-      #define HAVE_DISPATCH 0
     #endif
   #endif
 #endif

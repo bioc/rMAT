@@ -166,7 +166,8 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     {
       cat("** No regions to output **\n")
     }
-    ranges<-NULL
+    ranges<-IRanges(NULL)
+    return(RangedData(ranges))
   }
   # Here I assume that all the sequences have the same length
   RD<-RangedData(ranges, space = chr, score=score)
