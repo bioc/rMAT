@@ -32,8 +32,6 @@ setClass("tilingSet", contains="ExpressionSet", representation(genomeName="chara
 		{
 		stop ("All featureCopyNumber must be a numeric")	
 		}
-
-		
 	})
 
 

@@ -48,8 +48,10 @@ setMethod("rbind", "tilingSet", function(..., deparse.level=1) {
   
   ## For the sample name, I simply use the first set
   colnames(y)<-names[[1]]
+  rownames(y)<-NULL
   newSet<-new('tilingSet', featureChromosome=featureChromosome[ord],featurePosition=featurePosition[ord],
   featureCopyNumber=featureCopyNumber[ord], exprs=y[ord,], genomeName=unlist(lapply(args,function(x){x@genomeName})),
   featureSequence=featureSequence[ord], experimentData=args[[1]]@experimentData)
   return(newSet)
 })
+
