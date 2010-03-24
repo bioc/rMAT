@@ -1,24 +1,21 @@
-\name{show,MAT-method}
+\name{show,tilingSet-method}
 \docType{methods}
-\alias{show,MAT-method}
 \alias{show,tilingSet-method}
-\title{show Method for MAT Object}
+\title{show Method for tiling set object}
 
 \description{
-This methods show the objects MAT or tilinSet}
+This methods show the content of tilinSet objets}
 
 \usage{
-\S4method{show}{MAT}(object)
 \S4method{show}{tilingSet}(object)
-
 }
 
 \arguments{
-\item{object}{Object returned from \code{\link{MAT}} .}
+\item{object}{Object returned of class \code{tilingSet}}
 }
 
 \details{
-MAT or TilingSet contains an ExpressionSet and has the following additional slots: genomeName, featureSequence, featurePosition, featureChromosome, featureCopyNumber, featureSequence. This methods shows the information.
+TilingSet contais an ExpressionSet and has the following additional slots: genomeName, featureSequence, featurePosition, featureChromosome, featureCopyNumber, featureSequence.
 }
 
 \author{
@@ -29,7 +26,7 @@ MAT or TilingSet contains an ExpressionSet and has the following additional slot
 
 
 \seealso{
-\code{\link{MAT}}
+\code{\link{BPMAPCelParser}}, \code{\link{NormalizeProbes}}
 }
 
 \keyword{print}

@@ -6,7 +6,7 @@
   ### Read the header file
   bpmapHeader<-ReadBPMAPAllSeqHeader(BPMAPFileName)
 
-  ### Only read the sequence that we need, here I filter the sequences that contain chr
+  ### Only read the sequence that we need, here I filter the sequences that contain groupName
   seqToRead<-as.integer(bpmapHeader$seqNum[bpmapHeader$GroupName==groupName])
   seqToRead<-seqToRead[grep(seqName,bpmapHeader$SeqName[bpmapHeader$GroupName==groupName])]
 
@@ -15,7 +15,7 @@
   tmpCel<-vector("list",length(CelFileNames)+2)
 
   phenoData<-character(lArray)
-
+  
   for (i in 1:lArray)
   {
     tmp<-strsplit(CelFileNames[i], "/")
@@ -43,24 +43,20 @@
   names(SeqChr)[2]<-"Y"
 
   combineData<-.BPMAPCelMerger(SeqChr,tmpCel,verbose=verbose)
-
   seqNumNameIndex<-grep("SeqNum",names(combineData))
-
+    
   ##order by SeqNum, Position now:
   if(verbose)
   {
     cat("** Sorting Data first by Sequence number, then by Position **\n")
   }
 
-  seqNameVector<-as.character(combineData[[seqNumNameIndex]])
-
-  for(i in seqToRead)
-  {
-    tmp<-strsplit(as.character(bpmapHeader$SeqName[bpmapHeader$seqNum==i]),"chr")    
-    seqNameVector[seqNameVector==as.character(i)]<-(tmp[[1]])[length(tmp[[1]])]    
-  }
-
+  seqNameVector<-as.factor(combineData[[seqNumNameIndex]])
+  # I replace the levels by chr's
+  levels(seqNameVector)<-as.character(bpmapHeader$SeqName[bpmapHeader$seqNum%in%seqToRead])
+  
   SeqNumorder<-order(seqNameVector,combineData$Position)
+  
   combineDataBySP<-vector("list",length(combineData))
   for(i in 1:length(combineData))
   {
@@ -93,11 +89,9 @@
   myDesc <- new("MIAME")
   preproc(myDesc)<-list(transformation="log", normalization="none")
 
-  newSet<-new('tilingSet', featureChromosome=paste("chr",seqNameVector[SeqNumorder],sep=""),featurePosition=combineDataBySP$Position, 
+  newSet<-new('tilingSet', featureChromosome=seqNameVector[SeqNumorder],featurePosition=combineDataBySP$Position, 
   featureCopyNumber=as.integer(copyNumber), exprs=as.matrix(log(Data)), genomeName=genomeName, 
   featureSequence=combineDataBySP$PMProbe, experimentData=myDesc)
 
   return(newSet)
 }
-
-
