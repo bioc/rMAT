@@ -98,11 +98,7 @@ typedef unsigned long long int uint64_t;
 
 #else
 
-/*! A 16 bit unsigned integer. */
-typedef	unsigned short int     uint16_t;
-
-/*! A 32 bit unsigned integer. */
-typedef	unsigned int           uint32_t;
+#include <stdint.h>
 
 #endif /* __MINGW32__ */
 
