@@ -5,7 +5,10 @@
 
   ### Read the header file
   bpmapHeader<-ReadBPMAPAllSeqHeader(BPMAPFileName)
-
+  if(!any(bpmapHeader$GroupName%in%groupName))
+  {
+    stop("Your groupName does not appear to be valid.")
+  }
   ### Only read the sequence that we need, here I filter the sequences that contain groupName
   seqToRead<-as.integer(bpmapHeader$seqNum[bpmapHeader$GroupName==groupName])
   seqToRead<-seqToRead[grep(seqName,bpmapHeader$SeqName[bpmapHeader$GroupName==groupName])]

@@ -45,7 +45,7 @@ computeMATScore<-function(tilingSet, cName=NULL, dMax=600, verbose=FALSE)
   nArraysI<-ncol(I)
 
   seqNum<-as.numeric(as.factor(tilingSet@featureChromosome))  
-  
+
   obj<-.C("MATScore",
   as.double(t(C)),
   as.double(t(I)),
@@ -66,7 +66,9 @@ computeMATScore<-function(tilingSet, cName=NULL, dMax=600, verbose=FALSE)
   # Here I assume that all the sequences have the same length
   ranges<-IRanges(as.integer(tilingSet@featurePosition),width=1)
   RD<-RangedData(ranges, score=obj$MATScore, space = tilingSet@featureChromosome)
-  RD
+  # Remove duplicated probes
+  ind<-unlist(lapply(RD,function(x)duplicated(start(x))))
+  RD[!ind,]
 }
 
 callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, method="score", threshold=5, verbose=FALSE)
@@ -140,13 +142,14 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     End=integer(numRegions),    
     package="rMAT")
     
-    score<-start<-end<-chr<-rep(0,numRegions)
+    center<-score<-start<-end<-chr<-rep(0,numRegions)
     
     for(i in 1:numRegions)
     {
       start[i]<-startMat[obj$Start[i]]
       end[i]<-startMat[obj$End[i]]
       score[i]<-max(scoreMat[obj$Start[i]:obj$End[i]])
+      center[i]<-startMat[(obj$Start[i]:obj$End[i])[which.max(scoreMat[obj$Start[i]:obj$End[i]])]]
       chr[i]<-chrAll[obj$Start[i]]
     }
     ind<-obj$End-obj$Start>nProbesMin
@@ -159,6 +162,7 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     ranges<-IRanges(start=start[ind],end=end[ind])
     chr<-chr[ind]
     score<-score[ind]
+    center<-center[ind]
   }
   else
   {
@@ -170,7 +174,7 @@ callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, meth
     return(RangedData(ranges))
   }
   # Here I assume that all the sequences have the same length
-  RD<-RangedData(ranges, space = chr, score=score)
+  RD<-RangedData(ranges, space = chr, score=score, center=center)
   RD
 }
 
