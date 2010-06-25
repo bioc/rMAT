@@ -66,7 +66,9 @@ computeMATScore<-function(tilingSet, cName=NULL, dMax=600, verbose=FALSE)
   # Here I assume that all the sequences have the same length
   ranges<-IRanges(as.integer(tilingSet@featurePosition),width=1)
   RD<-RangedData(ranges, score=obj$MATScore, space = tilingSet@featureChromosome)
-  RD
+  # Remove duplicated probes
+  ind<-unlist(lapply(RD,function(x)duplicated(start(x))))
+  RD[!ind,]
 }
 
 callEnrichedRegions<-function(MatScore, dMax=600, dMerge=300, nProbesMin=8, method="score", threshold=5, verbose=FALSE)

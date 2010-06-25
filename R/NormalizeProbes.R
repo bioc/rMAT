@@ -1,4 +1,4 @@
-NormalizeProbes<-function(tilingSet, method="MAT",robust=FALSE, all=TRUE, standard=TRUE, verbose=FALSE)
+NormalizeProbes<-function(tilingSet, method="MAT",robust=FALSE, all=FALSE, standard=TRUE, verbose=FALSE)
 { 
 
   ### Sanity checks 
