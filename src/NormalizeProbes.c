@@ -24,14 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if defined(__APPLE__) || defined(macintosh)
-  #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-    #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
-      #include <dispatch/dispatch.h>
-      #define HAVE_DISPATCH 1
-    #endif
-  #endif
-#endif
+#include "config.h"
 
 int convertSeq(char seq);
 int convertNum(char seq1, char seq2);
@@ -96,9 +89,6 @@ void normArray(char **seq, double *y, double *yNormalized, int *nProbes, int *nA
 
         int nProbesTotal=*nProbes;
         int j=0,nVariables;
-        #ifdef HAVE_DISPATCH
-          dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        #endif
 
         /**if not using all probes to compute (for faster computation), then use the minimum of 300,000 or number of probes, which ever is less **/
         if((*all)==0)
@@ -140,29 +130,17 @@ void normArray(char **seq, double *y, double *yNormalized, int *nProbes, int *nA
             pairNumCount4,
             seq);
         }
-        #ifdef HAVE_DISPATCH
-          dispatch_apply(*nArrays, queue, ^(size_t jj) {normArray(seq, y, yNormalized, nProbes, nArrays, copyNumber, method, robust, adjRSquare, RSquare, BIC, outBeta, betaLength, all,  MATScaling, isVerbose, 
-            pairNumCount1, pairNumCount2, pairNumCount3, pairNumCount4,
-            seqNumCount,
-            nProbesTotal,
-            nVariables,
-            nBins,
-            nProbesPerBin,
-            yVector, copyNumberVector,
-            jj);
-          });
-        #else
-          for(j=0;j<*nArrays;j++)
-            normArray(seq, y, yNormalized, nProbes, nArrays, copyNumber, method, robust, adjRSquare, RSquare, BIC, outBeta, betaLength, all,  MATScaling, isVerbose, 
-            pairNumCount1, pairNumCount2, pairNumCount3, pairNumCount4,
-            seqNumCount,
-            nProbesTotal,
-            nVariables,
-            nBins,
-            nProbesPerBin,
-            yVector, copyNumberVector,
-            j);
-        #endif
+        DO_NORMALIZE(normArray(seq, y, yNormalized, nProbes, 
+                               nArrays, copyNumber, method, 
+                               robust, adjRSquare, RSquare, 
+                               BIC, outBeta, betaLength, all,  
+                               MATScaling, isVerbose, 
+                               pairNumCount1, pairNumCount2, 
+                               pairNumCount3, pairNumCount4,
+                               seqNumCount, nProbesTotal,
+                               nVariables, nBins, nProbesPerBin,
+                               yVector, copyNumberVector, jj),
+                     jj, *nArrays);
 
         if(*method==2)
         {

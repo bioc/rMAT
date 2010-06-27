@@ -8,4 +8,7 @@ done
 if [ -e src/Makevars ]; then
 rm -f src/Makevars
 fi
+if [ -e src/config.h ]; then
+rm -f src/config.h
+fi
 exit 0 

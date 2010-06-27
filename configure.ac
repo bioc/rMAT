@@ -1,4 +1,7 @@
-AC_INIT([src/NormalizeProbes.c])
+AC_PREREQ([2.61])
+AC_INIT([rMAT], [2.5.1], [http://www.rglab.org])
+
+AC_CONFIG_SRCDIR([DESCRIPTION])
 
 # determine RHOME
 : ${R_HOME=`R RHOME`}
@@ -8,10 +11,12 @@ if test -z "${R_HOME}"; then
 fi
 
 ## pick up compiler as will be used by R CMD INSTALL/SHLIB
-if test -n "${R_HOME}"; then
-  CC=`${R_HOME}/bin/R CMD config CC`
-  CFLAGS=`${R_HOME}/bin/R CMD config CFLAGS`
-fi
+CC=`"${R_HOME}/bin/R" CMD config CC`
+CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
+AC_PROG_CC
+AC_PROG_CPP
+
 
 ## BLAS.
 AC_ARG_WITH([blas],
@@ -32,5 +37,23 @@ else
   AM_PATH_GSL(1.6,[LIBS="${LIBS} -lgsl ${BLAS_LIBS} -lm"],[AC_MSG_ERROR([Cannot find Gnu Scientific Library >=1.6])])
 fi
 
+AC_SUBST(OPENMP_CFLAGS)
+# Checks for header files.
+AC_CHECK_HEADERS(dispatch/dispatch.h,
+  :,
+  [
+    AC_CHECK_HEADERS(omp.h,
+      [
+        LIBS+=-lgomp
+        OPENMP_CFLAGS=-fopenmp
+      ],
+      [
+        AC_MSG_NOTICE([no parallelism])
+      ])
+  ]
+)
+
+AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([src/Makevars])
+
 AC_OUTPUT()
