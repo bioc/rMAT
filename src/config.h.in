@@ -41,7 +41,7 @@
         task; \
       }
   #else // not HAVE_OMP_H
-    #include <foobar.h>
+	//    # include <foobar.h>
     #define DO_NORMALIZE(task, counter_name, n_times) \
       for (int counter_name = 0; counter_name < n_times; ++counter_name) { \
         task; \
