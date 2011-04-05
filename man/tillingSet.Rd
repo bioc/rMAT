@@ -17,7 +17,8 @@ Tiling set objects can also be combined using the \code{rbind} methods. This is 
 }
 
 \usage{
- newSet<-new('tilingSet', featureChromosome,featurePosition, featureCopyNumber, exprs, genomeName, featureSequence, experimentData)
+ new('tilingSet', featureChromosome,featurePosition, featureCopyNumber,
+     exprs, genomeName, featureSequence, experimentData)
 }
 
 \arguments{
@@ -32,8 +33,8 @@ Tiling set objects can also be combined using the \code{rbind} methods. This is 
 }
 
 \author{
-  Charles Cheung, \email{cykc@interchange.ubc.ca} and
-  Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca}
+  Charles Cheung, \email{cykc@interchange.ubc.ca}
+  Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca} and
   Arnaud Droit, \email{arnaud.droit@ircm.qc.ca}
 }
 
@@ -49,14 +50,17 @@ W. E. Johnson, Li, W., Meyer, C. A., Gottardo, R., Carroll, J. S., Brown, M., an
 \examples{
 
 featureChromosome=factor(c("chr1","chr1","chr1","chr1"))
-featurePosition=c(as.integer(47193),as.integer(47197),as.integer(47201),as.integer(47205))
+featurePosition=c(as.integer(47193),as.integer(47197),as.integer(47201),
+    as.integer(47205))
 featureCopyNumber=c(as.integer(1),as.integer(1),as.integer(1),as.integer(1))
 a=5.379897
 exprs=matrix(a,nrow=4)
 genomeName="Sc03b_MR_v04_10000"
 featureSequence=c("TCATCAAGGGAAGAGAGTCTCTCAG","TGATCATCACGGGACTTCTGGTTTA","CGGGACTTCTGGTTTATGGAACTAT","ACTTCTGGTTTATGGAACTATAAGG")
 
-newSet<-new('tilingSet', featureChromosome=featureChromosome,featurePosition=featurePosition,featureCopyNumber=featureCopyNumber, exprs=exprs, genomeName=genomeName, featureSequence=featureSequence)
+newSet <- new('tilingSet', featureChromosome=featureChromosome,
+    featurePosition=featurePosition,featureCopyNumber=featureCopyNumber,
+    exprs=exprs, genomeName=genomeName, featureSequence=featureSequence)
 
 }
 

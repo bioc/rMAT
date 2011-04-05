@@ -9,7 +9,8 @@
 
 \usage{
 
-ScSetNorm<-NormalizeProbes(tilingSet, method="MAT",robust=FALSE, all=FALSE, standard=TRUE, verbose=FALSE)
+NormalizeProbes(tilingSet, method="MAT", robust=FALSE,
+                all=FALSE, standard=TRUE, verbose=FALSE)
 						
 
 }
@@ -38,8 +39,8 @@ Johnson et al. Model-based analysis of tiling-arrays for ChIP-chip. Proc Natl Ac
 }
 
 \author{
-  Charles Cheung, \email{cykc@interchange.ubc.ca} and
-  Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca}
+  Charles Cheung, \email{cykc@interchange.ubc.ca}, 
+  Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca} and
    Arnaud Droit, \email{arnaud.droit@ircm.qc.ca}
 }
 
@@ -57,11 +58,11 @@ Johnson et al. Model-based analysis of tiling-arrays for ChIP-chip. Proc Natl Ac
 
 
 pwd<-"" #INPUT FILES- BPMAP, ARRAYS, etc.
-path<- system.file("doc/Sc03b_MR_v04_10000.bpmap",package="rMAT")
+path<- system.file("doc", "Sc03b_MR_v04_10000.bpmap",package="rMAT")
 
 bpmapFile<-paste(pwd,path,sep="")
 
-pathCEL<- system.file("doc/Swr1WTIP_Short.CEL",package="rMAT")
+pathCEL<- system.file("doc", "Swr1WTIP_Short.CEL",package="rMAT")
 arrayFile<-paste(pwd,c(pathCEL),sep="")
 
 
@@ -71,8 +72,9 @@ ReadBPMAPAllSeqHeader(bpmapFile)
 # create a tiling Set from the corresponding data
 # This will only grep the sequences with Sc
 
-ScSet<-BPMAPCelParser(bpmapFile, arrayFile, verbose=FALSE,groupName="Sc") 
-ScSetNorm<-NormalizeProbes(ScSet, method="MAT",robust=FALSE, all=FALSE, standard=TRUE, verbose=FALSE)
+ScSet <- BPMAPCelParser(bpmapFile, arrayFile, verbose=FALSE, groupName="Sc") 
+ScSetNorm <- NormalizeProbes(ScSet, method="MAT", robust=FALSE, all=FALSE,
+    standard=TRUE, verbose=FALSE)
    
 }
 
