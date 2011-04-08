@@ -34,7 +34,7 @@ A step-by-step guide in the analysis of tiling array data using the rMAT package
 Under the Artistic license 2.0, you are free to use and redistribute this software. However, we ask you to cite the following paper if you use this software for publication. 
 
 \begin{itemize}
-\item[]A. Droit, C. Cheung, and R. Gottardo, \emph{RMAT–an R/Bioconductor package for analyzing ChIP-chip experiments}. Bioinformatics (Oxford, England), vol. 26, iss. 5, pp. 678-679, 2010.
+\item[]A. Droit, C. Cheung, and R. Gottardo, \emph{RMAT-an R/Bioconductor package for analyzing ChIP-chip experiments}. Bioinformatics (Oxford, England), vol. 26, iss. 5, pp. 678-679, 2010.
 \end{itemize}
 
 \part{Introduction}
