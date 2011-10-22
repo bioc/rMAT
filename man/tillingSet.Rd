@@ -16,20 +16,7 @@ genomeName, featureSequence, featurePosition, featureChromosome, featureCopyNumb
 Tiling set objects can also be combined using the \code{rbind} methods. This is particularly useful when several arrays span a genome/chromosome.
 }
 
-\usage{
- tilingSet('tilingSet', featureChromosome,featurePosition, featureCopyNumber,exprs, genomeName, featureSequence, experimentData)
-}
 
-\arguments{
-\item{tilingSet}{This object contains an ExpressionSet}
-\item{genomeName}{ String containing the genome name used (vector).}
-\item{featureChromosome}{ Factor containing the name of chromosome used (vector).}
-\item{featurePosition}{ String containing the Position of the sequences (vector).}
-\item{featureCopyNumber}{ String containing the copy number of sequence (vector).}
-\item{exprs}{ String containing the expresion data of enriched region (matrix with n column.}
-\item{featureSequence}{String containing the sequence (vector).}
-\item{experimentData}{String containing the type of experiments.}
-}
 
 \author{
 Charles Cheung, \email{cykc@interchange.ubc.ca} and
