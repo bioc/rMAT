@@ -13,7 +13,7 @@
 \newcommand{\scst}{\scriptstyle}
 
 \author{Charles Cheung\footnote{cykc@interchange.ubc.ca} and Raphael
-  Gottardo\footnote{raphael.gottardo@ircm.qc.ca} and Arnaud Droit\footnote{arnaud.droit@ircm.qc.ca}}
+  Gottardo\footnote{rgottard@fhcrc.org} and Arnaud Droit\footnote{arnaud.droit@crchuq.ulaval.ca}}
 
 \begin{document}
 \title{Model Based Analysis of Tiling Arrays\\ The rMAT package.}
