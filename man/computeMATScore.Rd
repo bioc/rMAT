@@ -34,9 +34,9 @@
  }
  
  \author{
-   Charles Cheung, \email{cykc@interchange.ubc.ca} and
-   Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca}
-    Arnaud Droit, \email{arnaud.droit@ircm.qc.ca}
+ Charles Cheung, \email{cykc@interchange.ubc.ca} and
+ Raphael Gottardo, \email{rgottard@fhcrc.org}
+ Arnaud Droit, \email{arnaud.droit@crchuq.ulaval.ca}
  }
 
 

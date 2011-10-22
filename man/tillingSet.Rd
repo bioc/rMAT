@@ -17,8 +17,7 @@ Tiling set objects can also be combined using the \code{rbind} methods. This is 
 }
 
 \usage{
- new('tilingSet', featureChromosome,featurePosition, featureCopyNumber,
-     exprs, genomeName, featureSequence, experimentData)
+ tilingSet('tilingSet', featureChromosome,featurePosition, featureCopyNumber,exprs, genomeName, featureSequence, experimentData)
 }
 
 \arguments{
@@ -33,9 +32,9 @@ Tiling set objects can also be combined using the \code{rbind} methods. This is 
 }
 
 \author{
-  Charles Cheung, \email{cykc@interchange.ubc.ca}
-  Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca} and
-  Arnaud Droit, \email{arnaud.droit@ircm.qc.ca}
+Charles Cheung, \email{cykc@interchange.ubc.ca} and
+Raphael Gottardo, \email{rgottard@fhcrc.org}
+Arnaud Droit, \email{arnaud.droit@crchuq.ulaval.ca}
 }
 
 \references{

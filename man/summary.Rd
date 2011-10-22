@@ -21,8 +21,8 @@ This function will give a basic summary of a tilingSet object including chromoso
 
 \author{
   Charles Cheung, \email{cykc@interchange.ubc.ca} and
-  Raphael Gottardo, \email{raphael.gottardo@ircm.qc.ca}
-  Arnaud Droit, \email{arnaud.droit@ircm.qc.ca}
+  Raphael Gottardo, \email{rgottard@fhcrc.org}
+  Arnaud Droit, \email{arnaud.droit@crchuq.ulaval.ca}
 }
 
 \seealso{
