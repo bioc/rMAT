@@ -4,6 +4,7 @@
 useDynLib(rMAT)
 
 importFrom(stats, rnorm)
+importFrom(stats4, summary)
 
 importClassesFrom(methods, character, integer, numeric)
 importMethodsFrom(methods, show)
