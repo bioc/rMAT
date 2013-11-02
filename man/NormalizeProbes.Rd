@@ -59,11 +59,11 @@ Johnson et al. Model-based analysis of tiling-arrays for ChIP-chip. Proc Natl Ac
 
 
 pwd<-"" #INPUT FILES- BPMAP, ARRAYS, etc.
-path<- system.file("doc", "Sc03b_MR_v04_10000.bpmap",package="rMAT")
+path<- system.file("extdata", "Sc03b_MR_v04_10000.bpmap",package="rMAT")
 
 bpmapFile<-paste(pwd,path,sep="")
 
-pathCEL<- system.file("doc", "Swr1WTIP_Short.CEL",package="rMAT")
+pathCEL<- system.file("extdata", "Swr1WTIP_Short.CEL",package="rMAT")
 arrayFile<-paste(pwd,c(pathCEL),sep="")
 
 
