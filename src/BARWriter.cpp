@@ -74,6 +74,7 @@ WriteString_N(m_NewBarFile, genomeName);
 
 	m_NewBarFile.close();
   
+return R_NilValue;
 
   }
 
