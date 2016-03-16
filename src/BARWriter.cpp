@@ -17,7 +17,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library; if not, write to the Free Software Foundation, Inc.,
-// 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+// 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //
 /////////////////////////////////////////////////////////////////
 
@@ -35,13 +35,15 @@ using namespace affxbarwriter;
 using namespace affxbar;
 using namespace std;
 
-extern "C"
-{
 #include <R.h>
 #include <Rdefines.h>
 #include <wchar.h>
 #include <wctype.h>
 #include <string>
+
+
+extern "C"
+{
 
 
 
@@ -51,7 +53,7 @@ extern "C"
   {
 
     const char *fname = CHAR (STRING_ELT (fileName, 0));
-  ofstream m_NewBarFile; 
+  ofstream m_NewBarFile;
 	m_NewBarFile.open(fname, std::ios::out | std::ios::binary);
 
 	// Magic number
@@ -63,7 +65,7 @@ WriteFixedString(m_NewBarFile, std::string(magic), 8);
 
 
 float BAR_VERSION = 2.0f;
-WriteFloat_N(m_NewBarFile, BAR_VERSION);	
+WriteFloat_N(m_NewBarFile, BAR_VERSION);
 
 int NUM_SEQ = 101;
 WriteInt32_N(m_NewBarFile, NUM_SEQ);
@@ -73,7 +75,7 @@ const char *genomeName = CHAR (STRING_ELT (barNameString, 0));
 WriteString_N(m_NewBarFile, genomeName);
 
 	m_NewBarFile.close();
-  
+
 return R_NilValue;
 
   }
@@ -92,8 +94,8 @@ return R_NilValue;
     int curListPtr = 0, startListPtr = 0;
     int curChromosome = INTEGER(chNos)[0];
     int i;
- 
-	
+
+
     return R_NilValue;
 
   }

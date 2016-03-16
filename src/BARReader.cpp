@@ -19,7 +19,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library; if not, write to the Free Software Foundation, Inc.,
-// 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+// 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //
 /////////////////////////////////////////////////////////////////
 
@@ -34,12 +34,13 @@
 using namespace affxbar;
 using namespace std;
 
-extern "C"
-{
 #include <R.h>
 #include <Rdefines.h>
 #include <wchar.h>
 #include <wctype.h>
+
+extern "C"
+{
 
 /**Because there were some memory errors when running the code which ported Affymetrix Fusion SDK BPMAPFileData's code directly into R, I reimplemented it using its core code from ReadHeaderSection() and ReadDataSection().*/
   SEXP Parser (SEXP fileName)
@@ -48,83 +49,83 @@ extern "C"
     // Open the file.
       std::ifstream instr;
      instr.open (fname, std::ios::in | std::ios::binary);
-    
+
      // Check if open
-    if (!instr)   
-      {	
+    if (!instr)
+      {
 	cout << "Unable to open the file." << endl;
-	return R_NilValue;     
+	return R_NilValue;
 	}
-    
+
       // Magic number
       std::string magic;
       ReadFixedString (instr, magic, 8);
-    
+
       // Version
     float m_Version;
-    
+
    ReadFloat_N (instr, m_Version);
-    
+
       // Number of sequendes
       int32_t cType;
     int m_NumberSequences;
-    
+
    ReadInt32_N (instr, cType);
-    
+
    m_NumberSequences = cType;
-    
+
       // Columns
     int i = 0;
-    
+
 	ReadInt32_N (instr, cType);
     int m_NumberColumns;
-    
+
 	m_NumberColumns = cType;
     GDACFILES_BAR_DATA_TYPE_VECTOR m_ColumnTypes;
-    
+
 	m_ColumnTypes.resize (m_NumberColumns);
-    
-for (i = 0; i < m_NumberColumns; i++)     
+
+for (i = 0; i < m_NumberColumns; i++)
       {
-	
+
 	ReadInt32_N (instr, cType);
-	m_ColumnTypes[i] = (GDACFILES_BAR_DATA_TYPE) cType;      
+	m_ColumnTypes[i] = (GDACFILES_BAR_DATA_TYPE) cType;
 }
-    
+
       // Parameter
       std::string str;
-    
+
 	ReadInt32_N (instr, cType);
 	    int m_NumberParameters;
-    
+
 	m_NumberParameters = cType;
 	    TagValuePairTypeVector m_Parameters;
-    
+
 	m_Parameters.resize (m_NumberParameters);
-    
+
 	TagValuePairType param;
-    
-for (i = 0; i < m_NumberParameters; i++) 
+
+for (i = 0; i < m_NumberParameters; i++)
       {
-	
+
 ReadString_N (instr, str);
 m_Parameters[i].Tag = str;
-	
+
 ReadString_N (instr, str);
 m_Parameters[i].Value = str;
 
 //	cout << m_Parameters[i].Tag << endl;
 //	cout << m_Parameters[i].Value << endl;
-      
+
 }
-    
+
       // Determine the position of the start of the data
     int m_DataStartPosition = instr.tellg ();
-    
+
       // Skip to the data section
       instr.seekg (m_DataStartPosition);
-   
- 
+
+
 int totalDataPoints = 0;
 
     string *m_Name = new string[m_NumberSequences];
@@ -146,36 +147,36 @@ int totalDataPoints = 0;
 	bool bVersion2 = ((int) (m_Version + 0.1) == 2);
 	if (bVersion2)
 	  {
-	    
+
 	  ReadString_N (instr, m_GroupName[i]);
 //	    cout << m_GroupName[i] << endl;
 	 }
-	
+
 ReadString_N (instr, m_VersionSeq[i]);
 
-	
+
 	if (bVersion2)
 	   {
-		int32_t nParams = 0;	    
+		int32_t nParams = 0;
 		ReadInt32_N (instr, nParams);
 //	    cout << "nParams is " << nParams << endl;
 	    string tag;
 	    string val;
-	    
-	for (int iParam = 0; iParam < nParams; iParam++)     
+
+	for (int iParam = 0; iParam < nParams; iParam++)
 	      {
-		ReadString_N (instr, tag);		
+		ReadString_N (instr, tag);
 		ReadString_N (instr, val);
 //                              m_Results[i].AddParameter(tag, val);
-//		cout << tag << ", " << val << endl;  
-		} 
+//		cout << tag << ", " << val << endl;
+		}
 	}
-	
-	int32_t cType;	
+
+	int32_t cType;
 	ReadInt32_N (instr, cType);
 	m_NumberDataPoints[i] = cType;
 //	cout << "m_NumberDataPoints[i] is " << m_NumberDataPoints[i] << endl;
-	
+
 //              m_Results[i].m_NumberColumns = m_NumberColumns;
 //              m_Results[i].m_pColumnTypes = &m_ColumnTypes;
 //              m_Results[i].m_DataStartPosition = instr.tellg();
@@ -257,7 +258,7 @@ ReadString_N (instr, m_VersionSeq[i]);
 const int MAX_SIZE = 255;
 char buf[MAX_SIZE];
 snprintf( str, MAX_SIZE, "signal%d", (k+1) );
-//		itoa( (k+1), str2, 10);	
+//		itoa( (k+1), str2, 10);
 		//	char *  itoa ( int value, char * str, int base );
 		//		snprintf( buf, MAX_SIZE, "FPS: %d", myFps );
 //cout<<str <<endl;
@@ -287,7 +288,7 @@ snprintf( str, MAX_SIZE, "signal%d", (k+1) );
 
     // Close the file
       instr.close ();
-  
+
 	return hitList;
   }
 

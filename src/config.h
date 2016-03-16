@@ -9,7 +9,7 @@
 #define PACKAGE_NAME "rMAT"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "rMAT 2.6.0"
+#define PACKAGE_STRING "rMAT 2.5.1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "rmat"
@@ -19,6 +19,12 @@
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "2.5.1"
+
+/* Define to 1 if you have the <dispatch/dispatch.h> header file. */
+#define HAVE_DISPATCH_DISPATCH_H 1
+
+/* Define to 1 if you have the <omp.h> header file. */
+/* #undef HAVE_OMP_H */
 
 #ifdef HAVE_DISPATCH_DISPATCH_H
   #include <dispatch/dispatch.h>
@@ -36,7 +42,7 @@
         task; \
       }
   #else // not HAVE_OMP_H
-
+	//    # include <foobar.h>
     #define DO_NORMALIZE(task, counter_name, n_times) \
       for (int counter_name = 0; counter_name < n_times; ++counter_name) { \
         task; \

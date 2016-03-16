@@ -13,16 +13,18 @@
 using namespace std;
 using namespace affxbpmap;
 
+
+#include <R.h>
+#include <Rdefines.h>
+#include <wchar.h>
+#include <wctype.h>
+#include <Rinternals.h>
+#include <R_ext/Rdynload.h>
+
 extern "C" {
-  #include <R.h>
-  #include <Rdefines.h>  
-  #include <wchar.h>
-  #include <wctype.h>
-  #include <Rinternals.h>
-  #include <R_ext/Rdynload.h>
 
 
-       
+
 SEXP convertSeqToChNo(SEXP seqNum, SEXP cTableSeq, SEXP cTableChNo)
 {
 
@@ -36,19 +38,19 @@ SEXP convertSeqToChNo(SEXP seqNum, SEXP cTableSeq, SEXP cTableChNo)
 
   int cacheSeq = -1;
   int cacheChNo = -1;
-  int foundIndex; 
+  int foundIndex;
   int seqNum_i;
 
 for(int i=0; i<nProbes; i++)
 {
 	seqNum_i = INTEGER(seqNum)[i];
-  //The seqNum of the current probe is the same as that of the last probe, so we don't need to query the table for the chNo because they are the same 
+  //The seqNum of the current probe is the same as that of the last probe, so we don't need to query the table for the chNo because they are the same
 	if(seqNum_i== cacheSeq)
 		{
 			p_chNo[i] = cacheChNo;
 		}
 	//Perform a search on the table for the chromosome number for that sequence number.
-	else{		
+	else{
 			foundIndex = -1;
 			for(int k=0; k< cTableRows; k++)
 			{
@@ -71,7 +73,7 @@ for(int i=0; i<nProbes; i++)
 
 
  UNPROTECT(1);
-   return chNo;      
+   return chNo;
 
 }
 
@@ -80,7 +82,7 @@ for(int i=0; i<nProbes; i++)
 /*Essentially a modification of readAllBPMAPSeq */
 /*Modifications: 1. read the list of sequences*/
 
-SEXP readBPMAPSeq(SEXP fileName, SEXP rangelist,  SEXP readPM, SEXP readMM, SEXP readProbeLength, SEXP readPMProbeSeq, SEXP readMatchScore, SEXP readPosition, SEXP readTopStrand, SEXP verbose, SEXP maxRange, SEXP minRange)   
+SEXP readBPMAPSeq(SEXP fileName, SEXP rangelist,  SEXP readPM, SEXP readMM, SEXP readProbeLength, SEXP readPMProbeSeq, SEXP readMatchScore, SEXP readPosition, SEXP readTopStrand, SEXP verbose, SEXP maxRange, SEXP minRange)
 {
 
 /*checking inputs are of the right types:*/
@@ -113,7 +115,7 @@ data.SetFileName( CHAR(STRING_ELT(fileName, 0)) );
 /*Check whether we can read the header, thereby confirming whether it is a BPMAP file. */
 if( data.ReadHeader()==false){
        cout<<"Fail to read header\n" <<endl;
-       return R_NilValue;                              
+       return R_NilValue;
 }
 
 int totalSeqNumber = data.GetNumberSequences();
@@ -149,7 +151,7 @@ if(*isVerbose){
 }
 
 /*read the content of the data*/
-if(data.Read()==false){  
+if(data.Read()==false){
     cout<<"Fail to read\n"  <<endl;
     return R_NilValue;
 }
@@ -158,12 +160,12 @@ int cur=-1;
 int numSeqToParse = 0; /*a counter from the first sequence to the last*/
 while(numSeqToParse<lengthList)
 {
-/*	cur = (int)REAL(rangelist)[numSeqToParse]; //current sequence number to read */ 
+/*	cur = (int)REAL(rangelist)[numSeqToParse]; //current sequence number to read */
 	cur = rangeListArray[numSeqToParse]; /*current sequence number to read*/
 	  /*sequence's description            */
 	CGDACSequenceItem seq;
 	data.GetSequenceItem(cur, seq);  /*get sequence information*/
-	TOTALHITS=TOTALHITS+ seq.GetNumberHits();                      
+	TOTALHITS=TOTALHITS+ seq.GetNumberHits();
 	numSeqToParse++;
 }
 
@@ -189,7 +191,7 @@ if(*isVerbose){
   double *p_MatchScore = NULL;
   int *p_Position =NULL;
   int *p_TopStrand =NULL;
-  int *p_SeqNum =NULL; 
+  int *p_SeqNum =NULL;
 
   /*Allocating storage of R variables:*/
 
@@ -206,7 +208,7 @@ if(isTopStrand) count++;
 /*Declaring the name of the vector*/
 PROTECT(hit_names = allocVector(STRSXP,count));    /*Declaring the name of the vector*/
 /* Creating a list with appropriate vector elements:  //added 1 for SeqNum */
-PROTECT(hitList = allocVector(VECSXP, count)); 
+PROTECT(hitList = allocVector(VECSXP, count));
 
 int eleCount=0;
 
@@ -215,13 +217,13 @@ if(isPM)
   PROTECT(PMX = NEW_INTEGER(TOTALHITS));
   p_pmx = INTEGER_POINTER(PMX);
 SET_STRING_ELT(hit_names, eleCount,mkChar("PMX"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList, eleCount, PMX); 
+   SET_VECTOR_ELT(hitList, eleCount, PMX);
 eleCount++;
 
   PROTECT(PMY = NEW_INTEGER(TOTALHITS));
   p_pmy = INTEGER_POINTER(PMY);
 SET_STRING_ELT(hit_names,eleCount,mkChar("PMY"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList, eleCount, PMY); 
+   SET_VECTOR_ELT(hitList, eleCount, PMY);
 eleCount++;
 }
 if(isMM)
@@ -229,13 +231,13 @@ if(isMM)
   PROTECT(MMX = NEW_INTEGER(TOTALHITS));
   p_mmx = INTEGER_POINTER(MMX);
 SET_STRING_ELT(hit_names,eleCount,mkChar("MMX"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList, eleCount, MMX); 
+   SET_VECTOR_ELT(hitList, eleCount, MMX);
  eleCount++;
 
 PROTECT(MMY = NEW_INTEGER(TOTALHITS));
   p_mmy = INTEGER_POINTER(MMY);
 SET_STRING_ELT(hit_names, eleCount,mkChar("MMY"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList,  eleCount, MMY); 
+   SET_VECTOR_ELT(hitList,  eleCount, MMY);
  eleCount++;
 }
 if(isProbeLength)
@@ -245,16 +247,16 @@ if(isProbeLength)
 
 SET_STRING_ELT(hit_names, eleCount,mkChar("ProbeLength"));/*Declaring the name of the vector*/
 
-   SET_VECTOR_ELT(hitList,  eleCount, ProbeLength); 
+   SET_VECTOR_ELT(hitList,  eleCount, ProbeLength);
  eleCount++;
 }
 if(isPMProbeSeq)
 {
 
-	PROTECT(PMProbe = allocVector(STRSXP,TOTALHITS));    
+	PROTECT(PMProbe = allocVector(STRSXP,TOTALHITS));
 SET_STRING_ELT(hit_names, eleCount,mkChar("PMProbe"));/*Declaring the name of the vector*/
 
-   SET_VECTOR_ELT(hitList,  eleCount, PMProbe); 
+   SET_VECTOR_ELT(hitList,  eleCount, PMProbe);
  eleCount++;
 }
 if(isMatchScore)
@@ -263,7 +265,7 @@ if(isMatchScore)
   p_MatchScore = NUMERIC_POINTER(MatchScore);
 
 SET_STRING_ELT(hit_names, eleCount,mkChar("MatchScore"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList,  eleCount, MatchScore); 
+   SET_VECTOR_ELT(hitList,  eleCount, MatchScore);
  eleCount++;
 }
 if(isPosition)
@@ -272,7 +274,7 @@ if(isPosition)
   p_Position = INTEGER_POINTER(Position);
 
 SET_STRING_ELT(hit_names, eleCount, mkChar("Position"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList,  eleCount, Position); 
+   SET_VECTOR_ELT(hitList,  eleCount, Position);
  eleCount++;
 }
 if(isTopStrand)
@@ -281,7 +283,7 @@ if(isTopStrand)
   p_TopStrand = INTEGER_POINTER(TopStrand);
 
 SET_STRING_ELT(hit_names, eleCount,mkChar("TopStrand"));/*Declaring the name of the vector*/
-   SET_VECTOR_ELT(hitList,  eleCount, TopStrand); 
+   SET_VECTOR_ELT(hitList,  eleCount, TopStrand);
  eleCount++;
 
 }
@@ -289,11 +291,11 @@ SET_STRING_ELT(hit_names, eleCount,mkChar("TopStrand"));/*Declaring the name of 
   PROTECT(SeqNum = NEW_INTEGER(TOTALHITS));
   p_SeqNum = INTEGER_POINTER(SeqNum);
 	SET_STRING_ELT(hit_names,  eleCount, mkChar("SeqNum"));/*Declaring the name of the vector*/
-  SET_VECTOR_ELT(hitList,  eleCount, SeqNum); 
+  SET_VECTOR_ELT(hitList,  eleCount, SeqNum);
    eleCount++;
 
   /*next, store hitStorage for specific sequence of interest*/
-  GDACSequenceHitItemType *hitStorage=NULL;           
+  GDACSequenceHitItemType *hitStorage=NULL;
   hitStorage = new GDACSequenceHitItemType[TOTALHITS];
 
 
@@ -318,11 +320,11 @@ while(numSeqToParse<lengthList)
 	for(int pos=curStartIndex; pos< curStartIndex+NUMREAD; pos++)
 	{  /*change to reflect assignment of each sequence*/
 		if(isPM)
-		{	
+		{
 		  p_pmx[pos]=hitStorage[pos].PMX;
 	        		p_pmy[pos]=hitStorage[pos].PMY;
 	        		}
-	        if(isMM){ 
+	        if(isMM){
 	          p_mmx[pos]=hitStorage[pos].MMX;
 			        p_mmy[pos]=hitStorage[pos].MMY;
 			        }
@@ -332,7 +334,7 @@ while(numSeqToParse<lengthList)
 	        if(isPosition){	p_Position[pos]=hitStorage[pos].Position;}
 	        if(isTopStrand){	p_TopStrand[pos]= (int) hitStorage[pos].TopStrand; }
 		/*added - to identify the origin of the hit*/
-	        p_SeqNum[pos]= (int) cur; 
+	        p_SeqNum[pos]= (int) cur;
 	  }
 
 	/*Update curStartIndex to prepare for storing the next set of sequence*/
@@ -341,14 +343,14 @@ while(numSeqToParse<lengthList)
 } /*closing of the loop for each sequence*/
 
    /*and attaching the vector names:*/
-   setAttrib(hitList, R_NamesSymbol, hit_names); 
+   setAttrib(hitList, R_NamesSymbol, hit_names);
 
    /*finally delete the temperary variables*/
    delete[] hitStorage;
    hitStorage=NULL;
 
    UNPROTECT(count+2);
-   return hitList;      
+   return hitList;
 }
 
 
@@ -364,7 +366,7 @@ SEXP readBPMAPFileHeader(SEXP fileName)
      /* data.SetFileName( CHAR(STRING_ELT(fileName, 0)) );*/
      if( data.ReadHeader()==false){
        cout<<"Fail to read header\n" <<endl;
-       return R_NilValue;                              
+       return R_NilValue;
      }
 
      SEXP  myVersion, numSeq, list_names, list;
@@ -382,20 +384,20 @@ SEXP readBPMAPFileHeader(SEXP fileName)
      p_myVersion[0]=data.GetVersion();  /*get the version number of the file*/
 
      /*the header of the returning list*/
-     PROTECT(list_names = allocVector(STRSXP,2));    
+     PROTECT(list_names = allocVector(STRSXP,2));
      SET_STRING_ELT(list_names,0,mkChar("Version"));
      SET_STRING_ELT(list_names,1,mkChar("NumSeq"));
 
      /* Creating a list with 2 vector elements: version number and number of sequences*/
-     PROTECT(list = allocVector(VECSXP, 2)); 
-     SET_VECTOR_ELT(list, 0, myVersion); 
-     SET_VECTOR_ELT(list, 1, numSeq); 
+     PROTECT(list = allocVector(VECSXP, 2));
+     SET_VECTOR_ELT(list, 0, myVersion);
+     SET_VECTOR_ELT(list, 1, numSeq);
      /*      and attaching the vector names:*/
-     setAttrib(list, R_NamesSymbol, list_names); 
-     
+     setAttrib(list, R_NamesSymbol, list_names);
+
      UNPROTECT(4);
      return list; /*returning the list*/
-     
+
 }
 
 /*
@@ -421,7 +423,7 @@ SEXP readBPMAPSeqHeader(SEXP fileName, SEXP seqToRead)
    data.GetSequenceItem(cur, seq);  /*get sequence information*/
    cout<<seq.FullName() <<" with " <<endl;
    cout<<"Containing: " << seq.GetNumberHits() <<" number of hits" <<endl;
-   
+
    return R_NilValue;
 }
 
@@ -437,7 +439,7 @@ SEXP readBPMAPAllSeqHeader(SEXP fileName)
 /*Obtain the number of sequences to read*/
      if( data.ReadHeader()==false){
        cout<<"Fail to read header\n" <<endl;
-       return R_NilValue;                              
+       return R_NilValue;
      }
      int TOTALNUMSEQ=data.GetNumberSequences(); /*get the number of sequences stored in the file*/
 
@@ -484,7 +486,7 @@ for(int cur=0; cur<TOTALNUMSEQ ; cur++){
 
    /*
    cout<<"Sequence name: " <<seq.GetName() <<", Group name: " <<seq.GroupName() <<", Seq Version: " << seq.GetSeqVersion()
-   <<", Probe Mapping: " <<seq.GetProbeMapping() <<", Get Number: " <<seq.GetNumber() <<", Get NumberHits: " <<seq.GetNumberHits() 
+   <<", Probe Mapping: " <<seq.GetProbeMapping() <<", Get Number: " <<seq.GetNumber() <<", Get NumberHits: " <<seq.GetNumberHits()
    <<", Num Parameters: " <<seq.GetNumberParameters() <<endl;
    */
 }
@@ -492,7 +494,7 @@ for(int cur=0; cur<TOTALNUMSEQ ; cur++){
 
 
      /*the header of the returning list*/
-     PROTECT(list_names = allocVector(STRSXP,6));    
+     PROTECT(list_names = allocVector(STRSXP,6));
      SET_STRING_ELT(list_names,0,mkChar("SeqName"));
      SET_STRING_ELT(list_names,1,mkChar("GroupName"));
      SET_STRING_ELT(list_names,2,mkChar("version"));
@@ -501,24 +503,24 @@ for(int cur=0; cur<TOTALNUMSEQ ; cur++){
      SET_STRING_ELT(list_names,5,mkChar("NumHits"));
 
      /* Creating a list with 2 vector elements: version number and number of sequences*/
-     PROTECT(list = allocVector(VECSXP, 6)); 
-     SET_VECTOR_ELT(list, 0, seqName); 
-     SET_VECTOR_ELT(list, 1, groupName); 
-     SET_VECTOR_ELT(list, 2, version); 
-     SET_VECTOR_ELT(list, 3, probeMapping); 
-     SET_VECTOR_ELT(list, 4, seqNumber); 
-     SET_VECTOR_ELT(list, 5, seqNumHits); 
+     PROTECT(list = allocVector(VECSXP, 6));
+     SET_VECTOR_ELT(list, 0, seqName);
+     SET_VECTOR_ELT(list, 1, groupName);
+     SET_VECTOR_ELT(list, 2, version);
+     SET_VECTOR_ELT(list, 3, probeMapping);
+     SET_VECTOR_ELT(list, 4, seqNumber);
+     SET_VECTOR_ELT(list, 5, seqNumHits);
 
      /*      and attaching the vector names:*/
-     setAttrib(list, R_NamesSymbol, list_names); 
-     
+     setAttrib(list, R_NamesSymbol, list_names);
+
      UNPROTECT(8);
      return list; /*returning the list*/
-     
+
 }
 
 
- 
+
 
 /*
  *Merging BPMAP data frame and CEL data frame.
@@ -533,12 +535,12 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
   SEXP BPMAPx = NULL, BPMAPy=NULL, names = getAttrib(list, R_NamesSymbol);
   for (int i=0; i<length(list); i++)
     {
-      if(strcmp(CHAR(STRING_ELT(names, i)), "X") == 0) 
+      if(strcmp(CHAR(STRING_ELT(names, i)), "X") == 0)
       {
 	BPMAPx=VECTOR_ELT(list,i);
       }
-	
-      else if(strcmp(CHAR(STRING_ELT(names, i)), "Y") == 0) 
+
+      else if(strcmp(CHAR(STRING_ELT(names, i)), "Y") == 0)
       {
 	BPMAPy=VECTOR_ELT(list,i);
       }
@@ -565,12 +567,12 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
 
   SEXP x=NULL, y=NULL, celnames = getAttrib(celList, R_NamesSymbol);
   int intenCount=0;
-  for (int i=0; i<length(celList); i++){    
-    if(strcmp(CHAR(STRING_ELT(celnames, i)), "X") == 0) 
+  for (int i=0; i<length(celList); i++){
+    if(strcmp(CHAR(STRING_ELT(celnames, i)), "X") == 0)
     {
 	x=VECTOR_ELT(celList,i);
     }
-    else if(strcmp(CHAR(STRING_ELT(celnames, i)), "Y") == 0) 
+    else if(strcmp(CHAR(STRING_ELT(celnames, i)), "Y") == 0)
     {
 	y=VECTOR_ELT(celList,i);
     }
@@ -578,7 +580,7 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
     else{
 	/*cout<<"intensity in column " <<i <<endl;*/
 	/*Save the variables out*/
-	inten[intenCount] = VECTOR_ELT(celList,i); 
+	inten[intenCount] = VECTOR_ELT(celList,i);
 	intenCount++;
 	}
   }
@@ -604,7 +606,7 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
 	stop++;
 	for (int col=0; col<length(celList) -2; col++)
 	{
-	  p_intenOut[col][curA]=REAL(inten[col])[curB];		
+	  p_intenOut[col][curA]=REAL(inten[col])[curB];
 	}
 	curA++;
       }
@@ -621,7 +623,7 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
 
     else if (INTEGER(BPMAPy)[curA]>INTEGER(y)[curB])
     {
-        curB++;	
+        curB++;
     }
     else
     {
@@ -640,23 +642,23 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
 
   /*############################### creating a list to output all of them #######################*/
   SEXP hitList;
-  PROTECT(hitList = allocVector(VECSXP, length(list)-2 + length(celList))); 
+  PROTECT(hitList = allocVector(VECSXP, length(list)-2 + length(celList)));
   nProtect++;
 
   /* attaching BPMAP vectors to list:*/
   for (int i=0; i<length(list); i++)
-  {    
+  {
     /*Save the variables out*/
-    SET_VECTOR_ELT(hitList, i, VECTOR_ELT(list,i)); 
+    SET_VECTOR_ELT(hitList, i, VECTOR_ELT(list,i));
     SET_STRING_ELT(hitList_names, i, mkChar(CHAR(STRING_ELT(names, i))));
   }
- 
+
   /*assume we have X and Y as the first and second columns of intensities*/
   int excludeXYcount=0;  /*because X and Y in the combined cel files might not happen to be on a specific column, this variable is needed*/
   for(int i=0; i< length(celList); i++)
   {
 
-    if(!((strcmp(CHAR(STRING_ELT(celnames, i)), "X") == 0)||(strcmp(CHAR(STRING_ELT(celnames, i)), "Y") == 0))) 
+    if(!((strcmp(CHAR(STRING_ELT(celnames, i)), "X") == 0)||(strcmp(CHAR(STRING_ELT(celnames, i)), "Y") == 0)))
     {
     SET_VECTOR_ELT(hitList, excludeXYcount+length(list), intenOut[excludeXYcount]); /*append to hitList*/
     SET_STRING_ELT(hitList_names, length(list)+excludeXYcount, mkChar(CHAR(STRING_ELT(celnames, i))));
@@ -670,15 +672,15 @@ SEXP BPMAPCelMerger(SEXP list, SEXP celList)
   /*cout<<stop <<endl;*/
   return hitList;
 }
- 
- 
+
+
 /*
  *Convert a vector of sequences of same length to an numerical matrix
  */
 
 SEXP matrixSeq(SEXP seq, SEXP sizeSeq)
 {
- int size = INTEGER_VALUE(sizeSeq); 
+ int size = INTEGER_VALUE(sizeSeq);
  SEXP mat;
  int seqNum = LENGTH(seq);
  char *tmp=new char[size];
@@ -710,7 +712,7 @@ SEXP matrixSeq(SEXP seq, SEXP sizeSeq)
    }
  }
  UNPROTECT(2);
- return mat;   
+ return mat;
 }
 
 /*
@@ -719,7 +721,7 @@ SEXP matrixSeq(SEXP seq, SEXP sizeSeq)
 */
 SEXP seqPair(SEXP seq, SEXP sizeSeq)
 {
-  int size = INTEGER_VALUE(sizeSeq); 
+  int size = INTEGER_VALUE(sizeSeq);
   SEXP mat;
   int seqNum = LENGTH(seq);
   char *tmp=new char[size];
@@ -804,7 +806,7 @@ SEXP seqPair(SEXP seq, SEXP sizeSeq)
   }
 
   UNPROTECT(2);
-  return mat;   
+  return mat;
 }
 
 
