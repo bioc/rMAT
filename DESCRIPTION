@@ -10,5 +10,6 @@ License: Artistic-2.0
 Depends: R(>= 2.9.0), BiocGenerics (>= 0.1.3), IRanges (>= 1.13.10), Biobase (>= 2.15.1), affxparser
 Imports: stats, methods, BiocGenerics, IRanges, Biobase, affxparser, stats4
 Suggests: GenomeGraphs, rtracklayer
+SystemRequirements: GSL (GNU Scientific Library)
 biocViews: Microarray, Preprocessing
 URL: http://www.rglab.org
