@@ -44,7 +44,7 @@ AC_CHECK_HEADERS(dispatch/dispatch.h,
   [
     AC_CHECK_HEADERS(omp.h,
       [
-        LIBS+=-lgomp
+        LIBS+=" -lgomp"
         OPENMP_CFLAGS=-fopenmp
       ],
       [
